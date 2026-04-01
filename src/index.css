@@ -1,0 +1,162 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  * {
+    box-sizing: border-box;
+  }
+
+  body {
+    background-color: #fcf9f6;
+    min-height: 100dvh;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  ::selection {
+    background-color: #caebc8;
+    color: #3c583e;
+  }
+
+  .material-symbols-outlined {
+    font-variation-settings: 'FILL' 0, 'wght' 300, 'GRAD' 0, 'opsz' 24;
+    user-select: none;
+  }
+
+  textarea,
+  input {
+    outline: none;
+  }
+
+  /* 深色模式全局变量覆盖 */
+  .dark body {
+    background-color: #1a1c18;
+    color: #e2e3dd;
+  }
+
+  .dark .glass {
+    background-color: rgba(26, 28, 24, 0.80);
+  }
+
+  /* 深色模式下的卡片背景 */
+  .dark .bg-surface {
+    background-color: #1a1c18;
+  }
+
+  .dark .bg-surface-container-lowest {
+    background-color: #1a1c18;
+  }
+
+  .dark .bg-surface-container-low {
+    background-color: #222520;
+  }
+
+  .dark .bg-surface-container {
+    background-color: #2a2d27;
+  }
+
+  .dark .bg-surface-container-high {
+    background-color: #313430;
+  }
+
+  /* 深色模式文字 */
+  .dark .text-on-surface {
+    color: #e2e3dd;
+  }
+
+  .dark .text-on-surface-variant {
+    color: #c1c9ba;
+  }
+
+  .dark .text-outline {
+    color: #8b9285;
+  }
+
+  .dark .text-outline-variant {
+    color: #5e605b;
+  }
+
+  /* 深色模式主色 */
+  .dark .text-primary {
+    color: #a8d5a2;
+  }
+
+  .dark .bg-primary {
+    background-color: #3d5940;
+  }
+
+  .dark .bg-primary-container {
+    background-color: #2d4a30;
+  }
+
+  .dark .text-on-primary {
+    color: #e4ffe1;
+  }
+
+  .dark .text-on-primary-container {
+    color: #a8d5a2;
+  }
+
+  /* 深色模式次色 */
+  .dark .text-secondary {
+    color: #f0bc8a;
+  }
+
+  .dark .bg-secondary-container {
+    background-color: #4a3218;
+  }
+
+  .dark .bg-tertiary-container {
+    background-color: #2d4a30;
+  }
+}
+
+@layer utilities {
+  .glass {
+    background-color: rgba(252, 249, 246, 0.70);
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+  }
+
+  .nav-shadow {
+    box-shadow: 0 -4px 32px rgba(49, 51, 47, 0.04);
+  }
+
+  .ambient-shadow {
+    box-shadow: 0 4px 32px rgba(49, 51, 47, 0.04);
+  }
+
+  .card-shadow {
+    box-shadow: 0 20px 60px -15px rgba(49, 51, 47, 0.06);
+  }
+
+  .animate-fade-in {
+    animation: fadeIn 600ms ease both;
+  }
+
+  .animate-slide-up {
+    animation: slideUp 500ms ease both;
+  }
+
+  @keyframes fadeIn {
+    from {
+      opacity: 0;
+    }
+
+    to {
+      opacity: 1;
+    }
+  }
+
+  @keyframes slideUp {
+    from {
+      opacity: 0;
+      transform: translateY(16px);
+    }
+
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+}

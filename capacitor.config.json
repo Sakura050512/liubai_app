@@ -1,0 +1,15 @@
+{
+  "appId": "com.liubai.app",
+  "appName": "留白",
+  "webDir": "dist",
+  "server": {
+    "androidScheme": "https"
+  },
+  "plugins": {
+    "StatusBar": {
+      "overlaysWebView": false,
+      "style": "LIGHT",
+      "backgroundColor": "#fcf9f6"
+    }
+  }
+}
