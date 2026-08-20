@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react'
 import { Link } from 'react-router-dom'
 import { supabase } from '../lib/supabase'
 import { useDarkMode } from '../hooks/useDarkMode'
+import TopBar from '../components/TopBar'
 import BottomNav from '../components/BottomNav'
 
 const TABS = ['概览', '情绪', '收藏']
@@ -25,7 +26,16 @@ const ALL_ENTRIES = {
 
 const moodColors = {
   '平静': '#48654a', '低落': '#7e5731', '焦虑': '#9e422c',
-  '愉悦': '#496553', '烦躁': '#704b26',
+  '愉悦': '#496553', '烦躁': '#704b26', '难过': '#5b7fa6',
+  '不安': '#8a6bb0', '疲惫': '#6b7280',
+}
+
+// 解析 note 中的强度标记（格式：【强度淡淡地】），返回 { intensity, note }
+const parseMoodNote = (note) => {
+  if (!note) return { intensity: null, note: '' }
+  const m = note.match(/^【强度(淡淡地|适中|很强烈)】/)
+  if (m) return { intensity: m[1], note: note.slice(m[0].length) }
+  return { intensity: null, note }
 }
 
 export default function Me() {
@@ -112,22 +122,25 @@ export default function Me() {
       {/* 关于留白弹窗 */}
       {showAbout && (
         <div
-          className="fixed inset-0 z-50 flex items-end justify-center"
-          style={{ background: 'rgba(0,0,0,0.3)' }}
+          className="fixed inset-0 z-[60] flex items-end justify-center"
+          style={{ background: 'rgba(0,0,0,0.4)', backdropFilter: 'blur(4px)', WebkitBackdropFilter: 'blur(4px)' }}
           onClick={() => setShowAbout(false)}
+          role="dialog"
+          aria-modal="true"
+          aria-label="关于留白"
         >
           <div
-            className="w-full max-w-lg bg-surface rounded-t-3xl p-8 pb-12 animate-slide-up"
+            className="w-full max-w-lg bg-surface rounded-t-[2rem] p-8 pb-12 animate-slide-up"
             onClick={e => e.stopPropagation()}
           >
             <div className="w-10 h-1 bg-outline-variant/30 rounded-full mx-auto mb-8" />
             <div className="flex flex-col items-center text-center gap-4">
-              <div className="w-16 h-16 rounded-2xl bg-primary-container flex items-center justify-center text-4xl">
+              <div className="w-16 h-16 rounded-3xl bg-primary-container flex items-center justify-center text-4xl shadow-glow-soft">
                 🌿
               </div>
               <div>
-                <h2 className="font-headline text-2xl font-light text-on-surface tracking-widest mb-1">留白</h2>
-                <p className="text-outline text-xs tracking-widest">v1.0 · 心灵的数字庇护所</p>
+                <h2 className="font-display text-3xl font-medium text-on-surface tracking-wide mb-1">留白</h2>
+                <p className="text-outline text-xs tracking-widest">心灵的数字庇护所</p>
               </div>
               <p className="text-on-surface-variant text-sm font-light leading-relaxed max-w-xs">
                 留白是一个专注心理健康的私人空间。记录情绪、书写日记、探索内心——在这里，你只需要做自己。
@@ -159,19 +172,23 @@ export default function Me() {
         </div>
       )}
 
-      <header className="fixed top-0 w-full z-40 bg-surface flex items-center justify-between px-6"
-        style={{ paddingTop: 'env(safe-area-inset-top)', height: 'calc(64px + env(safe-area-inset-top))' }}>
-        <button
-          onClick={handleSignOut}
-          className="text-outline hover:text-primary transition-colors duration-300"
-        >
-          <span className="material-symbols-outlined">logout</span>
-        </button>
-        <h1 className="font-headline text-lg font-light tracking-widest text-primary">留白</h1>
-        <div className="w-8 h-8 rounded-full bg-primary-container/50 flex items-center justify-center text-lg">
-          {avatar}
-        </div>
-      </header>
+      <TopBar
+        title="留白"
+        left={
+          <button
+            onClick={handleSignOut}
+            aria-label="退出登录"
+            className="text-outline hover:text-primary transition-colors duration-300 p-1 -ml-1"
+          >
+            <span className="material-symbols-outlined">logout</span>
+          </button>
+        }
+        right={
+          <div className="w-8 h-8 rounded-full bg-primary-container/50 flex items-center justify-center text-lg">
+            {avatar}
+          </div>
+        }
+      />
 
       <main className="max-w-screen-md mx-auto px-5 pb-32" style={{ paddingTop: 'calc(80px + env(safe-area-inset-top))' }}>
 
@@ -216,7 +233,8 @@ export default function Me() {
           {/* 昵称 */}
           {editing ? (
             <input
-              className="font-headline text-2xl font-light tracking-tight text-on-surface mb-1 bg-transparent border-b border-primary focus:ring-0 pb-1 w-48 outline-none"
+              aria-label="编辑昵称"
+              className="font-display text-3xl font-medium tracking-tight text-on-surface mb-1 bg-transparent border-b border-primary focus:ring-0 pb-1 w-48 outline-none"
               value={profile.nickname}
               onChange={e => setProfile(p => ({ ...p, nickname: e.target.value }))}
               onBlur={saveNickname}
@@ -225,7 +243,7 @@ export default function Me() {
             />
           ) : (
             <h2
-              className="font-headline text-2xl font-light tracking-tight text-on-surface mb-1 cursor-pointer hover:text-primary transition-colors duration-300 flex items-center gap-2"
+              className="font-display text-3xl font-medium tracking-tight text-on-surface mb-1 cursor-pointer hover:text-primary transition-colors duration-300 flex items-center gap-2"
               onClick={() => setEditing(true)}
             >
               {profile.nickname}
@@ -239,21 +257,21 @@ export default function Me() {
         <section className="mb-6">
           {loading ? (
             <div className="grid grid-cols-3 gap-3">
-              {[0,1,2].map(i => <div key={i} className="bg-surface-container-lowest p-4 rounded-xl h-24 animate-pulse" />)}
+              {[0,1,2].map(i => <div key={i} className="bg-surface-container-lowest p-4 rounded-2xl h-24 animate-pulse" />)}
             </div>
           ) : (
             <div className="grid grid-cols-3 gap-3">
               {statCards.map(s => (
                 <div key={s.label}
-                  className="bg-surface-container-lowest p-4 rounded-xl flex flex-col items-start gap-2"
+                  className="bg-surface-container-lowest px-3.5 py-3.5 rounded-2xl flex flex-col items-center text-center border border-outline-variant/10"
                   style={{ boxShadow: '0 4px 24px rgba(49,51,47,0.04)' }}
                 >
-                  <span className={`material-symbols-outlined ${s.color} p-1.5 ${s.bg} rounded-full text-lg`}>
-                    {s.icon}
-                  </span>
-                  <div>
-                    <p className={`text-2xl font-medium ${s.accent} font-headline leading-none`}>{s.value}</p>
-                    <p className="text-on-surface-variant text-[11px] font-light mt-0.5">{s.label}</p>
+                  <p className="text-on-surface-variant text-xs font-semibold mb-2 truncate">{s.label}</p>
+                  <div className="flex items-center gap-2">
+                    <span className={`material-symbols-outlined ${s.color} p-1.5 ${s.bg} rounded-full text-lg flex-shrink-0 flex items-center justify-center`}>
+                      {s.icon}
+                    </span>
+                    <p className={`text-2xl font-bold ${s.accent} font-headline leading-tight`}>{s.value}</p>
                   </div>
                 </div>
               ))}
@@ -262,12 +280,13 @@ export default function Me() {
         </section>
 
         {/* Tab 切换 */}
-        <div className="flex gap-1 mb-5 bg-surface-container-low rounded-xl p-1">
+        <div className="flex gap-1 mb-5 bg-surface-container-low rounded-2xl p-1">
           {TABS.map((tab, i) => (
             <button
               key={tab}
               onClick={() => setActiveTab(i)}
-              className={`flex-1 py-2 rounded-lg text-sm font-medium transition-all duration-300 ${
+              aria-pressed={activeTab === i}
+              className={`flex-1 py-2.5 rounded-xl text-sm font-medium transition-all duration-300 ${
                 activeTab === i
                   ? 'bg-surface-container-lowest text-on-surface shadow-sm'
                   : 'text-outline hover:text-on-surface'
@@ -321,7 +340,7 @@ export default function Me() {
               <h3 className="font-headline text-xs font-semibold tracking-widest text-on-surface-variant uppercase mb-3 pl-1">
                 外观
               </h3>
-              <div className="flex items-center justify-between p-4 rounded-xl bg-surface-container-low">
+              <div className="flex items-center justify-between p-4 rounded-xl bg-surface-container-low mb-3">
                 <div className="flex items-center gap-4">
                   <span className="material-symbols-outlined text-outline">
                     {isDark ? 'dark_mode' : 'light_mode'}
@@ -330,6 +349,7 @@ export default function Me() {
                 </div>
                 <button
                   onClick={() => setIsDark(!isDark)}
+                  aria-label="切换深浅色模式"
                   className={`w-12 h-6 rounded-full transition-all duration-300 relative flex-shrink-0 ${
                     isDark ? 'bg-primary' : 'bg-surface-container-high'
                   }`}
@@ -384,7 +404,7 @@ export default function Me() {
               </div>
             ) : moodHistory.length > 0 ? (
               <>
-                <div className="bg-surface-container-lowest rounded-2xl p-5 mb-4"
+                <div className="bg-surface-container-lowest rounded-2xl p-5 mb-4 border border-outline-variant/10"
                   style={{ boxShadow: '0 4px 24px rgba(49,51,47,0.04)' }}>
                   <p className="text-[11px] text-outline uppercase tracking-widest mb-4">情绪分布（近 14 次）</p>
                   {Object.entries(moodCounts).sort((a, b) => b[1] - a[1]).map(([mood, count]) => (
@@ -408,20 +428,30 @@ export default function Me() {
                   )}
                 </div>
                 <div className="space-y-2">
-                  {moodHistory.map((m, i) => (
-                    <div key={i} className="flex items-start gap-3 bg-surface-container-low px-4 py-3 rounded-xl">
-                      <span className="text-xl flex-shrink-0 mt-0.5">{m.emoji}</span>
-                      <div className="flex-1 min-w-0">
-                        <p className="text-on-surface text-sm font-light">{m.mood}</p>
-                        {m.note && (
-                          <p className="text-on-surface-variant text-xs font-light mt-0.5 leading-relaxed line-clamp-2">{m.note}</p>
-                        )}
+                  {moodHistory.map((m, i) => {
+                    const { intensity, note } = parseMoodNote(m.note)
+                    return (
+                      <div key={i} className="flex items-start gap-3 bg-surface-container-low px-4 py-3 rounded-xl">
+                        <span className="text-xl flex-shrink-0 mt-0.5">{m.emoji}</span>
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center gap-2 flex-wrap">
+                            <p className="text-on-surface text-sm font-light">{m.mood}</p>
+                            {intensity && (
+                              <span className="text-[9px] tracking-widest px-1.5 py-0.5 rounded-full bg-primary-container/40 text-primary">
+                                {intensity}
+                              </span>
+                            )}
+                          </div>
+                          {note && (
+                            <p className="text-on-surface-variant text-xs font-light mt-0.5 leading-relaxed line-clamp-2">{note}</p>
+                          )}
+                        </div>
+                        <p className="text-[10px] text-outline tracking-wide shrink-0 mt-0.5">
+                          {new Date(m.created_at).toLocaleDateString('zh-CN', { month: 'short', day: 'numeric' })}
+                        </p>
                       </div>
-                      <p className="text-[10px] text-outline tracking-wide shrink-0 mt-0.5">
-                        {new Date(m.created_at).toLocaleDateString('zh-CN', { month: 'short', day: 'numeric' })}
-                      </p>
-                    </div>
-                  ))}
+                    )
+                  })}
                 </div>
               </>
             ) : (
@@ -449,11 +479,11 @@ export default function Me() {
                   const entry = ALL_ENTRIES[fav.entry_zh]
                   return (
                     <div key={i}
-                      className="bg-surface-container-lowest rounded-xl p-5 flex items-start gap-4"
+                      className="bg-surface-container-lowest rounded-2xl p-5 flex items-start gap-4 border border-outline-variant/10"
                       style={{ boxShadow: '0 2px 16px rgba(49,51,47,0.04)' }}
                     >
                       <div className="flex-1 min-w-0">
-                        <h3 className="font-headline text-base font-medium text-on-surface mb-0.5">{fav.entry_zh}</h3>
+                        <h3 className="font-display text-xl font-medium text-on-surface mb-0.5">{fav.entry_zh}</h3>
                         {entry && (
                           <>
                             <p className="text-on-surface-variant/60 text-xs italic mb-2">{entry.en}</p>
@@ -463,7 +493,8 @@ export default function Me() {
                       </div>
                       <button
                         onClick={() => removeFavorite(fav.entry_zh)}
-                        className="flex-shrink-0 text-outline-variant hover:text-secondary transition-colors duration-300 active:scale-90 mt-0.5"
+                        aria-label={`取消收藏 ${fav.entry_zh}`}
+                        className="flex-shrink-0 text-outline-variant hover:text-secondary transition-colors duration-300 active:scale-90 mt-0.5 p-1 -m-1"
                       >
                         <span className="material-symbols-outlined text-xl"
                           style={{ fontVariationSettings: "'FILL' 1, 'wght' 300, 'GRAD' 0, 'opsz' 24" }}>
@@ -473,10 +504,10 @@ export default function Me() {
                     </div>
                   )
                 })}
-                <div className="pt-2 text-center">
+                <div className="pt-4 flex justify-center">
                   <Link to="/dictionary"
-                    className="text-primary text-sm font-light hover:opacity-70 transition-opacity flex items-center justify-center gap-1">
-                    <span className="material-symbols-outlined text-sm">add</span>
+                    className="inline-flex items-center gap-1.5 pl-4 pr-5 py-2.5 rounded-full bg-surface-container-low border border-outline-variant/15 text-on-surface-variant text-sm font-light transition-all duration-300 hover:border-primary/40 hover:text-primary active:scale-95">
+                    <span className="material-symbols-outlined text-base text-primary">add</span>
                     去词典添加更多收藏
                   </Link>
                 </div>
@@ -486,7 +517,7 @@ export default function Me() {
                 <span className="material-symbols-outlined text-outline-variant text-4xl block mb-3">bookmark_border</span>
                 <p className="text-on-surface-variant text-sm font-light mb-4">还没有收藏的词条</p>
                 <Link to="/dictionary"
-                  className="bg-primary-container text-on-primary-container px-6 py-2.5 rounded-full text-sm font-medium inline-flex items-center gap-2 hover:opacity-90 transition-opacity active:scale-95">
+                  className="bg-primary-container text-on-primary-container px-6 py-2.5 rounded-full text-sm font-medium inline-flex items-center gap-2 hover:opacity-90 transition-opacity active:scale-95 shadow-glow-soft">
                   <span className="material-symbols-outlined text-sm">menu_book</span>
                   去心理词典看看
                 </Link>
@@ -494,10 +525,6 @@ export default function Me() {
             )}
           </section>
         )}
-
-        <p className="text-center text-xs text-outline-variant/50 tracking-widest py-8">
-          留白 · v1.0 · 心灵的数字庇护所
-        </p>
       </main>
 
       <BottomNav />

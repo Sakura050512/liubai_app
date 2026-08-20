@@ -44,63 +44,84 @@ export default function Auth() {
   const switchMode = (m) => { setMode(m); setMsg('') }
 
   return (
-    <div className="min-h-screen bg-surface flex flex-col items-center justify-center px-6 font-body">
-      <div className="mb-12 text-center">
-        <h1 className="font-headline text-4xl font-light text-primary mb-2 tracking-widest">留白</h1>
-        <p className="text-on-surface-variant text-sm font-light tracking-wide">心灵的数字庇护所</p>
+    <div className="min-h-screen bg-surface flex flex-col items-center justify-center px-6 font-body relative overflow-hidden">
+      {/* 背景氛围光晕 */}
+      <div aria-hidden="true" className="absolute -top-24 -right-24 w-72 h-72 rounded-full bg-primary-container/40 blur-3xl" />
+      <div aria-hidden="true" className="absolute -bottom-28 -left-20 w-80 h-80 rounded-full bg-secondary-container/30 blur-3xl" />
+
+      <div className="relative mb-12 text-center animate-fade-in">
+        <div className="inline-flex items-center justify-center w-16 h-16 rounded-3xl bg-primary-container mb-5 shadow-glow-soft">
+          <span className="material-symbols-outlined text-primary text-3xl" style={{ fontVariationSettings: "'FILL' 0, 'wght' 200, 'GRAD' 0, 'opsz' 40" }}>self_improvement</span>
+        </div>
+        <h1 className="font-display text-4xl font-medium text-primary mb-2 tracking-wide">留白</h1>
+        <p className="text-on-surface-variant text-sm font-light tracking-[0.2em]">心灵的数字庇护所</p>
       </div>
 
-      <div className="w-full max-w-sm space-y-3">
-        <input
-          type="email" placeholder="邮箱"
-          value={email} onChange={e => setEmail(e.target.value)}
-          onKeyDown={e => e.key === 'Enter' && handle()}
-          className="w-full bg-surface-container-low rounded-xl px-4 py-3.5 text-on-surface placeholder-outline text-sm font-light focus:outline-none focus:ring-1 focus:ring-primary transition-all"
-        />
+      <div className="w-full max-w-sm space-y-3 animate-slide-up" style={{ animationDelay: '80ms' }}>
+        <div>
+          <label htmlFor="auth-email" className="sr-only">邮箱</label>
+          <input
+            id="auth-email"
+            type="email" placeholder="邮箱"
+            autoComplete="email"
+            value={email} onChange={e => setEmail(e.target.value)}
+            onKeyDown={e => e.key === 'Enter' && handle()}
+            className="w-full bg-surface-container-lowest rounded-2xl px-4 py-3.5 text-on-surface placeholder-outline text-sm font-light focus:outline-none focus:ring-2 focus:ring-primary/30 border border-outline-variant/20 transition-all"
+          />
+        </div>
 
         {mode !== 'reset' && (
-          <input
-            type="password" placeholder="密码（至少 6 位）"
-            value={password} onChange={e => setPassword(e.target.value)}
-            onKeyDown={e => e.key === 'Enter' && handle()}
-            className="w-full bg-surface-container-low rounded-xl px-4 py-3.5 text-on-surface placeholder-outline text-sm font-light focus:outline-none focus:ring-1 focus:ring-primary transition-all"
-          />
+          <div>
+            <label htmlFor="auth-password" className="sr-only">密码</label>
+            <input
+              id="auth-password"
+              type="password" placeholder="密码（至少 6 位）"
+              autoComplete={mode === 'login' ? 'current-password' : 'new-password'}
+              value={password} onChange={e => setPassword(e.target.value)}
+              onKeyDown={e => e.key === 'Enter' && handle()}
+              className="w-full bg-surface-container-lowest rounded-2xl px-4 py-3.5 text-on-surface placeholder-outline text-sm font-light focus:outline-none focus:ring-2 focus:ring-primary/30 border border-outline-variant/20 transition-all"
+            />
+          </div>
         )}
 
         {msg && (
-          <p className={`text-sm text-center px-2 ${msgType === 'error' ? 'text-error' : 'text-primary'}`}>
+          <p
+            role="status"
+            aria-live="polite"
+            className={`text-sm text-center px-2 animate-fade-in ${msgType === 'error' ? 'text-error' : 'text-primary'}`}
+          >
             {msg}
           </p>
         )}
 
         <button onClick={handle} disabled={loading}
-          className="w-full bg-primary text-on-primary py-3.5 rounded-full font-medium tracking-wide transition-all duration-300 active:scale-95 disabled:opacity-50">
+          className="w-full bg-primary text-on-primary py-3.5 rounded-2xl font-medium tracking-wide transition-all duration-300 active:scale-[0.98] disabled:opacity-50 shadow-glow">
           {loading ? '处理中...' : mode === 'login' ? '登录' : mode === 'register' ? '注册' : '发送重置邮件'}
         </button>
 
         {/* 模式切换 */}
-        <div className="flex flex-col gap-1 pt-1">
+        <div className="flex flex-col gap-1 pt-2">
           {mode === 'login' && (
             <>
               <button onClick={() => switchMode('register')}
-                className="w-full text-center text-sm text-outline hover:text-primary transition-colors py-1.5">
+                className="w-full text-center text-sm text-primary underline underline-offset-4 decoration-primary/40 hover:decoration-primary transition-colors py-1.5">
                 没有账号？点此注册
               </button>
               <button onClick={() => switchMode('reset')}
-                className="w-full text-center text-sm text-outline hover:text-primary transition-colors py-1.5">
+                className="w-full text-center text-sm text-primary underline underline-offset-4 decoration-primary/40 hover:decoration-primary transition-colors py-1.5">
                 忘记密码？
               </button>
             </>
           )}
           {mode === 'register' && (
             <button onClick={() => switchMode('login')}
-              className="w-full text-center text-sm text-outline hover:text-primary transition-colors py-1.5">
+              className="w-full text-center text-sm text-primary underline underline-offset-4 decoration-primary/40 hover:decoration-primary transition-colors py-1.5">
               已有账号？点此登录
             </button>
           )}
           {mode === 'reset' && (
             <button onClick={() => switchMode('login')}
-              className="w-full text-center text-sm text-outline hover:text-primary transition-colors py-1.5">
+              className="w-full text-center text-sm text-primary underline underline-offset-4 decoration-primary/40 hover:decoration-primary transition-colors py-1.5">
               返回登录
             </button>
           )}

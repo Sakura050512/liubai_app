@@ -1,11 +1,12 @@
 import { useState, useEffect } from 'react'
 import { supabase } from '../lib/supabase'
 import { chat } from '../lib/ai'
-import BottomNav from '../components/BottomNav'
+import TopBar from '../components/TopBar'
 
 const moodColors = {
   '平静': '#48654a', '低落': '#7e5731', '焦虑': '#9e422c',
-  '愉悦': '#496553', '烦躁': '#704b26',
+  '愉悦': '#496553', '烦躁': '#704b26', '难过': '#5b7fa6',
+  '不安': '#8a6bb0', '疲惫': '#6b7280',
 }
 
 export default function WeeklyReport() {
@@ -47,7 +48,19 @@ export default function WeeklyReport() {
     if (!data.moods.length && !data.journals.length) return
     setAiLoading(true)
 
-    const moodSummary = data.moods.map(m => `${m.mood}${m.note ? `（${m.note}）` : ''}`).join('、')
+    // 解析强度标记，情绪摘要包含强度信息
+    const parseIntensity = (note) => {
+      if (!note) return ''
+      const m = note.match(/^【强度(淡淡地|适中|很强烈)】/)
+      return m ? m[1] : ''
+    }
+    const cleanNote = (note) => (note || '').replace(/^【强度(淡淡地|适中|很强烈)】/, '')
+
+    const moodSummary = data.moods.map(m => {
+      const inten = parseIntensity(m.note)
+      const n = cleanNote(m.note)
+      return `${m.mood}${inten ? `(${inten}强度)` : ''}${n ? `（${n}）` : ''}`
+    }).join('、')
     const journalSummary = data.journals.map(j => j.content.slice(0, 50)).join('；')
 
     try {
@@ -87,18 +100,13 @@ export default function WeeklyReport() {
 
   return (
     <div className="min-h-screen bg-surface font-body text-on-surface flex flex-col">
-      <header className="bg-surface fixed top-0 w-full z-50 flex items-center justify-between px-6"
-        style={{ paddingTop: 'env(safe-area-inset-top)', height: 'calc(64px + env(safe-area-inset-top))' }}>
-        <div className="w-10" />
-        <h1 className="font-headline font-light tracking-widest text-xl text-primary">每周报告</h1>
-        <div className="w-10" />
-      </header>
+      <TopBar title="每周报告" back backTo="/" />
 
-      <main className="flex-grow pb-32 px-5 max-w-lg mx-auto w-full" style={{ paddingTop: 'calc(80px + env(safe-area-inset-top))' }}>
+      <main className="flex-grow pb-16 px-5 max-w-lg mx-auto w-full" style={{ paddingTop: 'calc(80px + env(safe-area-inset-top))' }}>
         {/* 日期范围 */}
         <div className="mb-6 animate-fade-in">
           <p className="text-[11px] tracking-[0.25em] text-outline uppercase">{dateRange}</p>
-          <h2 className="font-headline text-2xl font-light text-on-surface mt-1">本周回顾</h2>
+          <h2 className="font-display text-3xl font-medium text-on-surface mt-1">本周回顾</h2>
         </div>
 
         {loading ? (
@@ -170,7 +178,7 @@ export default function WeeklyReport() {
                     <button
                       onClick={generateReport}
                       disabled={aiLoading}
-                      className="bg-primary text-on-primary px-6 py-2.5 rounded-full text-sm font-medium tracking-wide transition-all duration-300 active:scale-95 disabled:opacity-50 flex items-center gap-2"
+                      className="bg-primary text-on-primary px-6 py-2.5 rounded-full text-sm font-medium tracking-wide transition-all duration-300 active:scale-[0.98] disabled:opacity-50 flex items-center gap-2 shadow-glow-soft"
                     >
                       {aiLoading ? (
                         <>
@@ -213,7 +221,6 @@ export default function WeeklyReport() {
           </>
         )}
       </main>
-      <BottomNav />
     </div>
   )
 }

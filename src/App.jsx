@@ -6,8 +6,7 @@ import Onboarding from './pages/Onboarding'
 import Auth from './pages/Auth'
 import Home from './pages/Home'
 import MindDictionary from './pages/MindDictionary'
-import NameMyFeeling from './pages/NameMyFeeling'
-import JustWantToTalk from './pages/JustWantToTalk'
+import Talk from './pages/Talk'
 import DailyJournal from './pages/DailyJournal'
 import Me from './pages/Me'
 import Breathing from './pages/Breathing'
@@ -78,8 +77,7 @@ export default function App() {
             <>
               <Route path="/" element={<Home />} />
               <Route path="/dictionary" element={<MindDictionary />} />
-              <Route path="/feeling" element={<NameMyFeeling />} />
-              <Route path="/talk" element={<JustWantToTalk />} />
+              <Route path="/talk" element={<Talk />} />
               <Route path="/journal" element={<DailyJournal />} />
               <Route path="/me" element={<Me />} />
               <Route path="/breathing" element={<Breathing />} />

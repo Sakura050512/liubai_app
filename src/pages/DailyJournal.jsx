@@ -115,17 +115,20 @@ export default function DailyJournal() {
   return (
     <div className="min-h-screen bg-surface font-body text-on-surface flex flex-col">
       <TopBar />
-      <main className="flex-grow pb-32 px-6 max-w-2xl mx-auto w-full" style={{ paddingTop: 'calc(64px + env(safe-area-inset-top))' }}>
+      <main className="flex-grow pb-32 px-6 max-w-2xl mx-auto w-full" style={{ paddingTop: 'calc(84px + env(safe-area-inset-top))' }}>
 
-        <header className="mb-10 animate-fade-in">
-          <p className="text-outline font-headline font-light tracking-wide text-sm">{dateStr}</p>
+        <header className="mb-6 animate-fade-in">
+          <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-surface-container-low border border-outline-variant/10">
+            <span className="material-symbols-outlined text-primary/70" style={{ fontSize: 15 }}>calendar_today</span>
+            <p className="text-[11px] tracking-[0.18em] text-on-surface-variant">{dateStr}</p>
+          </div>
         </header>
 
         {/* 引导问题 */}
-        <section className="mb-10 animate-slide-up">
-          <div className="bg-surface-container-lowest rounded-xl overflow-hidden border-l-4 border-primary"
+        <section className="mb-8 animate-slide-up">
+          <div className="bg-surface-container-lowest rounded-2xl overflow-hidden border-l-4 border-primary"
             style={{ boxShadow: '0 4px 32px rgba(49,51,47,0.04)' }}>
-            <div className="p-6">
+            <div className="p-5">
               <p className="italic text-on-surface-variant font-light text-lg leading-relaxed">
                 "{PROMPTS[promptIdx]}"
               </p>
@@ -134,29 +137,31 @@ export default function DailyJournal() {
         </section>
 
         {/* 写作区 */}
-        <section className="relative mb-10 animate-fade-in" style={{ animationDelay: '150ms' }}>
+        <section className="relative mb-6 animate-fade-in" style={{ animationDelay: '150ms' }}>
           {pageLoading ? (
             <div className="min-h-[200px] flex items-center justify-center">
               <p className="text-outline text-sm font-light">加载中...</p>
             </div>
           ) : (
-            <textarea
-              className="w-full bg-transparent border-none focus:ring-0 p-0 text-on-surface text-lg font-light resize-none placeholder:text-outline-variant/60 leading-relaxed min-h-[280px]"
-              placeholder="从任何地方开始写..."
-              value={text}
-              onChange={e => {
-                setText(e.target.value)
-                if (saved) { setSaved(false); setReflection(null) }
-              }}
-              spellCheck={false}
-            />
+            <div className="rounded-3xl bg-surface-container-lowest dark:bg-surface-container-low border border-outline-variant/10 p-6 transition-shadow duration-300 focus-within:border-primary/40 focus-within:shadow-glow-soft">
+              <textarea
+                className="no-focus-ring w-full bg-transparent border-none p-0 text-on-surface text-lg font-light resize-none placeholder:text-outline-variant/60 leading-relaxed min-h-[280px]"
+                placeholder="从任何地方开始写..."
+                value={text}
+                onChange={e => {
+                  setText(e.target.value)
+                  if (saved) { setSaved(false); setReflection(null) }
+                }}
+                spellCheck={false}
+              />
+            </div>
           )}
         </section>
 
         {/* AI 反思卡片 */}
         {(saved || aiLoading) && (
-          <section className="mb-10 animate-slide-up">
-            <div className="bg-surface-container-lowest rounded-xl p-5 flex gap-4 items-start border border-outline-variant/10"
+          <section className="mb-6 animate-slide-up">
+            <div className="bg-surface-container-lowest rounded-2xl p-5 flex gap-4 items-start border border-outline-variant/10"
               style={{ boxShadow: '0 12px 48px rgba(49,51,47,0.06)' }}>
               <div className="flex-shrink-0 w-10 h-10 rounded-full bg-primary-container flex items-center justify-center">
                 <span className="material-symbols-outlined text-primary text-xl">blur_on</span>
@@ -185,7 +190,7 @@ export default function DailyJournal() {
             <button
               onClick={handleSave}
               disabled={!text.trim() || aiLoading}
-              className="bg-primary text-on-primary px-8 py-3.5 rounded-full font-medium tracking-wide flex items-center gap-2 hover:opacity-90 active:scale-95 transition-all duration-300 disabled:opacity-40"
+              className="bg-primary text-on-primary px-8 py-3.5 rounded-full font-medium tracking-wide flex items-center gap-2 hover:opacity-90 active:scale-[0.98] transition-all duration-300 disabled:opacity-40 shadow-glow-soft"
             >
               <span className="material-symbols-outlined text-base">check</span>保存今天的记录
             </button>
@@ -200,11 +205,24 @@ export default function DailyJournal() {
         <div className="flex justify-center mb-6">
           <button
             onClick={() => setShowHistory(!showHistory)}
-            className="group flex items-center gap-2 text-primary font-light text-sm tracking-wide hover:opacity-70 transition-opacity"
+            aria-expanded={showHistory}
+            className={`group flex items-center gap-2.5 pl-4 pr-5 py-2.5 rounded-full border transition-all duration-300 active:scale-95 ${
+              showHistory
+                ? 'bg-primary-container/40 border-primary/25 text-primary'
+                : 'bg-surface-container-lowest border-outline-variant/15 text-on-surface-variant hover:border-primary/40 hover:text-primary'
+            }`}
+            style={{ boxShadow: '0 2px 12px rgba(49,51,47,0.04)' }}
           >
-            <span>翻看以前的今天</span>
-            <span className={`material-symbols-outlined text-sm transition-transform duration-300 ${showHistory ? 'rotate-90' : ''}`}>
-              arrow_forward
+            <span
+              className={`material-symbols-outlined text-base transition-transform duration-300 ${showHistory ? 'rotate-90' : ''}`}
+            >
+              history
+            </span>
+            <span className="text-sm font-light tracking-wide">{showHistory ? '收起往昔' : '翻看以前的今天'}</span>
+            <span
+              className={`material-symbols-outlined text-base transition-transform duration-300 ${showHistory ? 'rotate-180' : ''}`}
+            >
+              expand_more
             </span>
           </button>
         </div>

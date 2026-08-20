@@ -2,7 +2,6 @@ import { useState, useRef, useEffect } from 'react'
 import { Link } from 'react-router-dom'
 import { supabase } from '../lib/supabase'
 import TopBar from '../components/TopBar'
-import BottomNav from '../components/BottomNav'
 
 const ALL_ENTRIES = [
   { zh: '冒名顶替综合症', en: 'Impostor Syndrome', source: '心理学文献', desc: '一种觉得自己的成就是靠运气、随时会被人看穿的感觉。它有名字，很多人都有。' },
@@ -119,6 +118,9 @@ export default function MindDictionary() {
   return (
     <div className="min-h-screen bg-surface font-body text-on-surface flex flex-col">
       <TopBar
+        title="心理词典"
+        back
+        backTo="/"
         right={
           <button
             onClick={() => { setShowSearch(!showSearch); setSearchText('') }}
@@ -133,11 +135,13 @@ export default function MindDictionary() {
 
       {/* 搜索栏 */}
       {showSearch && (
-        <div className="fixed top-0 left-0 right-0 z-40 px-6 py-3 bg-surface border-b border-outline-variant/10"
+        <div className="fixed top-0 left-0 right-0 z-40 px-6 py-3 bg-surface border-b border-outline-variant/10 app-topbar"
           style={{ paddingTop: 'calc(env(safe-area-inset-top) + 68px)' }}>
+          <label htmlFor="dict-search" className="sr-only">搜索词条</label>
           <input
+            id="dict-search"
             autoFocus
-            className="w-full bg-surface-container-low rounded-xl px-4 py-2.5 text-on-surface placeholder-outline text-sm font-light focus:outline-none focus:ring-1 focus:ring-primary"
+            className="w-full bg-surface-container-low rounded-2xl px-4 py-2.5 text-on-surface placeholder-outline text-sm font-light focus:outline-none focus:ring-2 focus:ring-primary/30 transition-all"
             placeholder="搜索词条名称或描述..."
             value={searchText}
             onChange={e => { setSearchText(e.target.value); setIndex(0) }}
@@ -153,15 +157,17 @@ export default function MindDictionary() {
       {/* Toast 提示 */}
       {toastMsg && (
         <div
-          className="fixed top-20 left-1/2 -translate-x-1/2 z-50 bg-on-surface text-surface text-sm font-light px-5 py-2.5 rounded-full animate-fade-in"
-          style={{ boxShadow: '0 4px 20px rgba(0,0,0,0.15)' }}
+          role="status"
+          aria-live="polite"
+          className="fixed top-20 left-1/2 -translate-x-1/2 z-50 text-sm font-light px-5 py-2.5 rounded-full animate-fade-in shadow-lift"
+          style={{ backgroundColor: 'rgba(35, 37, 33, 0.92)', color: '#fcf9f6' }}
         >
           {toastMsg}
         </div>
       )}
 
       <main
-        className={`flex-grow pb-24 px-6 flex flex-col items-center justify-center max-w-2xl mx-auto w-full`}
+        className={`flex-grow pb-16 px-6 flex flex-col items-center justify-center max-w-2xl mx-auto w-full`}
         style={{ paddingTop: showSearch ? 'calc(112px + env(safe-area-inset-top))' : 'calc(80px + env(safe-area-inset-top))' }}
       >
         {entries.length === 0 ? (
@@ -180,12 +186,12 @@ export default function MindDictionary() {
             {/* Card Stack */}
             <div className="relative w-full max-w-md mb-10" style={{ aspectRatio: '3/4' }}>
               {/* 背景装饰卡 */}
-              <div className="absolute inset-0 bg-surface-container-lowest rounded-3xl ambient-shadow translate-y-4 scale-90 opacity-40 origin-bottom" />
-              <div className="absolute inset-0 bg-surface-container-lowest rounded-3xl ambient-shadow translate-y-2 scale-95 opacity-70 origin-bottom" />
+              <div className="absolute inset-0 bg-surface-container-lowest rounded-[2rem] ambient-shadow translate-y-4 scale-90 opacity-40 origin-bottom" />
+              <div className="absolute inset-0 bg-surface-container-lowest rounded-[2rem] ambient-shadow translate-y-2 scale-95 opacity-70 origin-bottom" />
 
               {/* 主卡片 */}
               <div
-                className="absolute inset-0 bg-surface-container-lowest rounded-3xl card-shadow p-8 flex flex-col"
+                className="absolute inset-0 bg-surface-container-lowest rounded-[2rem] card-shadow p-8 flex flex-col border border-outline-variant/10"
                 style={{
                   ...cardStyle,
                   transition: 'opacity 300ms ease, transform 300ms ease',
@@ -204,7 +210,9 @@ export default function MindDictionary() {
                     <button
                       onClick={() => toggleFavorite(entry.zh)}
                       disabled={favLoading}
-                      className="transition-all duration-300 active:scale-90 disabled:opacity-50"
+                      aria-pressed={isFaved}
+                      aria-label={isFaved ? `取消收藏 ${entry.zh}` : `收藏 ${entry.zh}`}
+                      className="transition-all duration-300 active:scale-90 disabled:opacity-50 p-1 -m-1"
                     >
                       <span
                         className={`material-symbols-outlined text-2xl transition-colors duration-300 ${
@@ -223,7 +231,7 @@ export default function MindDictionary() {
 
                 {/* 词条名称 */}
                 <div className="space-y-2 mb-8">
-                  <h2 className="text-3xl font-headline font-semibold text-on-surface tracking-tight">
+                  <h2 className="font-display text-4xl font-medium text-on-surface tracking-tight">
                     {entry.zh}
                   </h2>
                   <p className="text-on-surface-variant font-light text-lg italic opacity-60">
@@ -266,34 +274,38 @@ export default function MindDictionary() {
 
             {/* CTA */}
             <Link
-              to="/feeling"
-              className="w-full max-w-xs h-14 bg-primary-container text-on-primary-container rounded-full font-medium tracking-wide flex items-center justify-center gap-2 hover:opacity-90 active:scale-95 transition-all duration-300 mb-10"
+              to="/talk"
+              className="w-full max-w-xs h-14 bg-primary-container text-on-primary-container rounded-full font-medium tracking-wide flex items-center justify-center gap-2 hover:opacity-90 active:scale-95 transition-all duration-300 mb-10 shadow-glow-soft"
             >
               <span>我也有这种感受</span>
               <span className="material-symbols-outlined text-sm">arrow_forward</span>
             </Link>
 
             {/* 翻页导航 */}
-            <div className="flex items-center gap-6 text-outline-variant/60 text-[11px] tracking-[0.2em] uppercase select-none">
+            <div className="flex items-center gap-3 select-none">
               <button
                 onClick={() => go(-1)}
-                className="flex items-center gap-1 hover:text-primary transition-colors active:scale-95"
+                disabled={entries.length <= 1}
+                className="group flex items-center gap-1.5 pl-3 pr-5 py-2.5 rounded-full bg-surface-container-lowest border border-outline-variant/15 text-on-surface-variant text-[11px] tracking-[0.2em] uppercase transition-all duration-300 hover:border-primary/40 hover:text-primary active:scale-95 disabled:opacity-40 disabled:pointer-events-none"
+                style={{ boxShadow: '0 2px 12px rgba(49,51,47,0.04)' }}
               >
-                <span className="material-symbols-outlined text-base">chevron_left</span>上一条
+                <span className="material-symbols-outlined text-base transition-transform duration-300 group-hover:-translate-x-0.5">chevron_left</span>
+                上一条
               </button>
-              <span className="text-outline-variant/20">|</span>
+              <span className="w-1 h-1 rounded-full bg-outline-variant/40 flex-shrink-0" />
               <button
                 onClick={() => go(1)}
-                className="flex items-center gap-1 hover:text-primary transition-colors active:scale-95"
+                disabled={entries.length <= 1}
+                className="group flex items-center gap-1.5 pl-5 pr-3 py-2.5 rounded-full bg-surface-container-lowest border border-outline-variant/15 text-on-surface-variant text-[11px] tracking-[0.2em] uppercase transition-all duration-300 hover:border-primary/40 hover:text-primary active:scale-95 disabled:opacity-40 disabled:pointer-events-none"
+                style={{ boxShadow: '0 2px 12px rgba(49,51,47,0.04)' }}
               >
-                下一条<span className="material-symbols-outlined text-base">chevron_right</span>
+                下一条
+                <span className="material-symbols-outlined text-base transition-transform duration-300 group-hover:translate-x-0.5">chevron_right</span>
               </button>
             </div>
           </>
         )}
       </main>
-
-      <BottomNav />
     </div>
   )
 }

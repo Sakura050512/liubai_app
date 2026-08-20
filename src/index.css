@@ -7,15 +7,59 @@
     box-sizing: border-box;
   }
 
+  html {
+    -webkit-tap-highlight-color: transparent;
+    scroll-behavior: smooth;
+  }
+
   body {
     background-color: #fcf9f6;
     min-height: 100dvh;
     -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    text-rendering: optimizeLegibility;
   }
 
   ::selection {
     background-color: #caebc8;
     color: #3c583e;
+  }
+
+  /* 全局焦点可见性：键盘导航可见，鼠标点击不显示 */
+  :focus {
+    outline: none;
+  }
+
+  :focus-visible {
+    outline: 2px solid #48654a;
+    outline-offset: 2px;
+    border-radius: 4px;
+  }
+
+  .dark :focus-visible {
+    outline-color: #a8d5a2;
+  }
+
+  /* 输入框聚焦：柔和的内部光环代替生硬 outline（跟随输入框自身圆角） */
+  input:focus-visible,
+  textarea:focus-visible {
+    outline: none !important;
+    box-shadow: 0 0 0 3px rgba(72, 101, 74, 0.14) !important;
+  }
+
+  .dark input:focus-visible,
+  .dark textarea:focus-visible {
+    box-shadow: 0 0 0 3px rgba(168, 213, 162, 0.16) !important;
+  }
+
+  /* 容器包裹型输入框：聚焦光环由容器 focus-within 呈现，自身完全无框 */
+  .no-focus-ring:focus-visible,
+  .no-focus-ring:focus,
+  .dark .no-focus-ring:focus-visible,
+  .dark .no-focus-ring:focus {
+    outline: none !important;
+    box-shadow: none !important;
+    border: none !important;
   }
 
   .material-symbols-outlined {
@@ -38,13 +82,13 @@
     background-color: rgba(26, 28, 24, 0.80);
   }
 
-  /* 深色模式下的卡片背景 */
+  /* 深色模式下的卡片背景（lowest 比背景亮一级，保证层次） */
   .dark .bg-surface {
     background-color: #1a1c18;
   }
 
   .dark .bg-surface-container-lowest {
-    background-color: #1a1c18;
+    background-color: #262923;
   }
 
   .dark .bg-surface-container-low {
@@ -109,6 +153,17 @@
   .dark .bg-tertiary-container {
     background-color: #2d4a30;
   }
+
+  /* 深色模式底部导航毛玻璃 */
+  .dark nav[aria-label="主导航"] {
+    background-color: rgba(26, 28, 24, 0.88) !important;
+    box-shadow: 0 -1px 0 rgba(255, 255, 255, 0.06), 0 -8px 32px rgba(0, 0, 0, 0.3) !important;
+  }
+
+  /* 深色模式顶部栏毛玻璃 */
+  .dark .app-topbar {
+    background-color: rgba(26, 28, 24, 0.88) !important;
+  }
 }
 
 @layer utilities {
@@ -116,6 +171,15 @@
     background-color: rgba(252, 249, 246, 0.70);
     backdrop-filter: blur(20px);
     -webkit-backdrop-filter: blur(20px);
+  }
+
+  /* 聊天输入框：浅色半透明毛玻璃，深色模式跟随 */
+  .chat-input-shell {
+    background-color: rgba(245, 243, 239, 0.92);
+  }
+
+  .dark .chat-input-shell {
+    background-color: rgba(34, 37, 32, 0.92);
   }
 
   .nav-shadow {
@@ -130,12 +194,16 @@
     box-shadow: 0 20px 60px -15px rgba(49, 51, 47, 0.06);
   }
 
+  .text-balance {
+    text-wrap: balance;
+  }
+
   .animate-fade-in {
     animation: fadeIn 600ms ease both;
   }
 
   .animate-slide-up {
-    animation: slideUp 500ms ease both;
+    animation: slideUp 500ms cubic-bezier(0.22, 1, 0.36, 1) both;
   }
 
   @keyframes fadeIn {
@@ -158,5 +226,39 @@
       opacity: 1;
       transform: translateY(0);
     }
+  }
+
+  @keyframes scaleIn {
+    from {
+      opacity: 0;
+      transform: scale(0.96);
+    }
+
+    to {
+      opacity: 1;
+      transform: scale(1);
+    }
+  }
+
+  @keyframes float {
+    0%, 100% {
+      transform: translateY(0);
+    }
+
+    50% {
+      transform: translateY(-10px);
+    }
+  }
+}
+
+/* 尊重减少动态偏好：关闭装饰性动画 */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
   }
 }

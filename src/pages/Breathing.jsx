@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react'
-import BottomNav from '../components/BottomNav'
+import TopBar from '../components/TopBar'
 
 const PHASES = [
   { label: '吸气', duration: 4, scale: 1.3, color: '#48654a' },
@@ -94,22 +94,17 @@ const start = () => {
 
   return (
     <div className="min-h-screen bg-surface font-body text-on-surface flex flex-col">
-      <header className="bg-surface fixed top-0 w-full z-50 flex items-center justify-between px-6"
-        style={{ paddingTop: 'env(safe-area-inset-top)', height: 'calc(64px + env(safe-area-inset-top))' }}>
-        <div className="w-10" />
-        <h1 className="font-headline font-light tracking-widest text-xl text-primary">呼吸练习</h1>
-        <div className="w-10" />
-      </header>
+      <TopBar title="呼吸练习" back backTo="/" />
 
-      <main className="flex-grow pb-32 flex flex-col items-center justify-center px-6" style={{ paddingTop: 'calc(64px + env(safe-area-inset-top))' }}>
+      <main className="flex-grow pb-16 flex flex-col items-center justify-center px-6" style={{ paddingTop: 'calc(64px + env(safe-area-inset-top))' }}>
         {!running && !done ? (
           <div className="flex flex-col items-center gap-8 w-full max-w-xs animate-fade-in">
             <div className="text-center">
-              <span className="material-symbols-outlined text-primary text-5xl block mb-4"
+              <span className="material-symbols-outlined text-primary text-5xl block mb-4 animate-float"
                 style={{ fontVariationSettings: "'FILL' 0, 'wght' 200, 'GRAD' 0, 'opsz' 48" }}>
                 air
               </span>
-              <h2 className="font-headline text-2xl font-light text-on-surface mb-2">4-4-6-2 呼吸法</h2>
+              <h2 className="font-display text-3xl font-medium text-on-surface mb-2">4-4-6-2 呼吸法</h2>
               <p className="text-on-surface-variant text-sm font-light leading-relaxed">
                 吸气 4 秒 · 屏息 4 秒 · 呼气 6 秒 · 屏息 2 秒<br />
                 有助于激活副交感神经，快速平静身心
@@ -136,8 +131,7 @@ const start = () => {
 
             <button
               onClick={start}
-              className="w-full bg-primary text-on-primary py-4 rounded-full font-medium tracking-wide transition-all duration-300 active:scale-95"
-              style={{ boxShadow: '0 8px 24px rgba(72,101,74,0.25)' }}
+              className="w-full bg-primary text-on-primary py-4 rounded-full font-medium tracking-wide transition-all duration-300 active:scale-[0.98] shadow-glow"
             >
               开始练习
             </button>
@@ -148,7 +142,7 @@ const start = () => {
               <span className="material-symbols-outlined text-primary text-4xl">check</span>
             </div>
             <div>
-              <h2 className="font-headline text-2xl font-light text-on-surface mb-2">练习完成</h2>
+              <h2 className="font-display text-3xl font-medium text-on-surface mb-2">练习完成</h2>
               <p className="text-on-surface-variant font-light text-sm">
                 你完成了 {totalCycles} 个呼吸循环。<br />感受一下现在的状态。
               </p>
@@ -163,76 +157,80 @@ const start = () => {
         ) : (
           <div className="flex flex-col items-center gap-10 animate-fade-in">
             {/* 进度 */}
-            <div className="flex items-center gap-2 text-[11px] text-outline uppercase tracking-widest">
-              <span>{cycleCount + 1}</span>
-              <span>/</span>
-              <span>{totalCycles} 循环</span>
+            <div className="flex items-center gap-2.5">
+              <span className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-full bg-surface-container-low text-on-surface-variant text-xs font-light tracking-widest">
+                <span className="material-symbols-outlined text-sm" style={{ color: phase.color }}>blur_circular</span>
+                <span className="font-medium" style={{ color: phase.color }}>{cycleCount + 1}</span>
+                <span>/ {totalCycles} 循环</span>
+              </span>
             </div>
 
             {/* 呼吸圆圈 */}
-            <div className="relative flex items-center justify-center" style={{ width: 260, height: 260 }}>
-              {/* 最外层光晕 */}
+            <div className="relative flex items-center justify-center" style={{ width: 280, height: 280 }}>
+              {/* 最外层渐变光晕 */}
               <div
                 className="absolute rounded-full"
                 style={{
-                  width: 260,
-                  height: 260,
-                  background: `${phase.color}08`,
+                  width: 280,
+                  height: 280,
+                  background: `radial-gradient(circle, ${phase.color}14 0%, ${phase.color}08 45%, transparent 72%)`,
                   transform: `scale(${phase.scale})`,
-                  transition: `transform ${phase.duration}s ease-in-out, background ${phase.duration}s ease-in-out`,
+                  filter: 'blur(6px)',
+                  transition: `transform ${phase.duration}s cubic-bezier(0.22, 1, 0.36, 1), background ${phase.duration}s ease`,
                 }}
               />
-              {/* 中间波纹圈 */}
+              {/* 中间渐变波纹环 */}
               <div
                 className="absolute rounded-full"
                 style={{
-                  width: 220,
-                  height: 220,
-                  background: 'transparent',
-                  border: `1.5px solid ${phase.color}30`,
+                  width: 232,
+                  height: 232,
+                  background: `conic-gradient(from 0deg, transparent 0%, ${phase.color}2e 12%, ${phase.color}55 25%, ${phase.color}2e 38%, transparent 50%, ${phase.color}1f 62%, ${phase.color}40 75%, transparent 88%)`,
+                  WebkitMask: 'radial-gradient(farthest-side, transparent calc(100% - 2px), #000 calc(100% - 1.5px))',
+                  mask: 'radial-gradient(farthest-side, transparent calc(100% - 2px), #000 calc(100% - 1.5px))',
                   transform: `scale(${phase.scale})`,
-                  transition: `transform ${phase.duration}s ease-in-out, border-color ${phase.duration}s ease-in-out`,
+                  transition: `transform ${phase.duration}s cubic-bezier(0.22, 1, 0.36, 1)`,
                 }}
               />
-              {/* 主圆 */}
+              {/* 主圆：球体渐变 */}
               <div
                 className="absolute rounded-full flex items-center justify-center"
                 style={{
-                  width: 180,
-                  height: 180,
-                  background: `${phase.color}18`,
-                  border: `2px solid ${phase.color}50`,
+                  width: 192,
+                  height: 192,
+                  background: `radial-gradient(circle at 32% 28%, ${phase.color}2a 0%, ${phase.color}14 55%, ${phase.color}0d 100%)`,
+                  border: `1.5px solid ${phase.color}45`,
                   transform: `scale(${phase.scale})`,
-                  transition: `transform ${phase.duration}s ease-in-out, background ${phase.duration}s ease-in-out, box-shadow ${phase.duration}s ease-in-out`,
-                  boxShadow: `0 0 40px ${phase.color}30`,
+                  boxShadow: `0 0 48px ${phase.color}24, inset 0 2px 18px ${phase.color}1a, inset 0 -8px 24px ${phase.color}0d`,
+                  transition: `transform ${phase.duration}s cubic-bezier(0.22, 1, 0.36, 1), background ${phase.duration}s ease, box-shadow ${phase.duration}s ease`,
                 }}
               >
-                <div className="text-center">
-                  <p className="font-headline text-5xl font-light text-on-surface">{countdown}</p>
-                  <p className="text-sm font-light tracking-widest mt-1" style={{ color: phase.color }}>{phase.label}</p>
+                <div className="text-center -mt-2">
+                  <p className="font-headline text-6xl font-light text-on-surface leading-none" style={{ letterSpacing: '0.04em' }}>{countdown}</p>
+                  <p className="text-[13px] font-light tracking-[0.4em] mt-3 uppercase" style={{ color: phase.color }}>{phase.label}</p>
                 </div>
               </div>
             </div>
 
             {/* 进度条 */}
-            <div className="w-48 h-1 bg-surface-container-low rounded-full overflow-hidden">
+            <div className="w-52 h-1.5 bg-surface-container-low rounded-full overflow-hidden">
               <div
-                className="h-full rounded-full bg-primary transition-all duration-1000"
-                style={{ width: `${progress * 100}%` }}
+                className="h-full rounded-full transition-all duration-1000"
+                style={{ width: `${progress * 100}%`, background: phase.color }}
               />
             </div>
 
             <button
               onClick={stop}
-              className="text-outline text-sm font-light hover:text-primary transition-colors flex items-center gap-2"
+              className="inline-flex items-center gap-2 pl-4 pr-5 py-2.5 rounded-full border border-outline-variant/20 bg-surface-container-lowest text-outline text-sm font-light transition-all duration-300 hover:border-secondary/40 hover:text-secondary active:scale-95"
+              style={{ boxShadow: '0 2px 12px rgba(49,51,47,0.04)' }}
             >
-              <span className="material-symbols-outlined text-sm">stop</span>
+              <span className="material-symbols-outlined text-base">stop</span>
               停止练习
             </button>
           </div>
         )}
       </main>
-      <BottomNav />
     </div>
   )
 }
