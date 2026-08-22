@@ -2,27 +2,24 @@ import { useState, useEffect } from 'react'
 import { Link } from 'react-router-dom'
 import { supabase } from '../lib/supabase'
 import { useDarkMode } from '../hooks/useDarkMode'
+import { ALL_ENTRIES } from '../data/dictionary'
+import { parseMoodNote } from '../lib/moodNote'
+import { setupDailyReminder } from '../lib/notification'
+import MoodTrendChart from '../components/MoodTrendChart'
+import EmptyState from '../components/EmptyState'
 import TopBar from '../components/TopBar'
 import BottomNav from '../components/BottomNav'
 
-const TABS = ['概览', '情绪', '收藏']
+const TABS = ['概览', '情绪', '心里话', '收藏']
 
 const AVATARS = ['🌿', '🌸', '🍃', '🌊', '☁️', '🌙', '⭐', '🦋', '🌻', '🍀', '🌈', '🪷', '🫧', '🕊️', '🐚', '🌾']
 
-const ALL_ENTRIES = {
-  '冒名顶替综合症': { en: 'Impostor Syndrome', desc: '一种觉得自己的成就是靠运气、随时会被人看穿的感觉。' },
-  '情绪颗粒度': { en: 'Emotional Granularity', desc: '精确区分和描述自己情绪细节的能力。' },
-  '边界感': { en: 'Psychological Boundaries', desc: '对自我与他人关系的清晰认知。' },
-  '过度共情': { en: 'Empathy Fatigue', desc: '长期吸收他人的痛苦而导致的情感耗竭状态。' },
-  '反刍思维': { en: 'Rumination', desc: '反复回想过去的负面事件或问题，无法从中解脱。' },
-  '心理韧性': { en: 'Resilience', desc: '在逆境、创伤或压力后能够恢复、适应甚至成长的能力。' },
-  '依恋焦虑': { en: 'Attachment Anxiety', desc: '对亲密关系中被抛弃的强烈恐惧。' },
-  '认知失调': { en: 'Cognitive Dissonance', desc: '当一个人持有两种相互矛盾的信念时产生的心理不适感。' },
-  '习得性无助': { en: 'Learned Helplessness', desc: '经历多次失败后，即使成功有可能也不再尝试的心理状态。' },
-  '高敏感人格': { en: 'Highly Sensitive Person', desc: '对外界刺激有比常人更深度的感知和处理。' },
-  '焦虑性依附': { en: 'Anxious Attachment', desc: '在亲密关系中持续担心被忽视或抛弃。' },
-  '自我效能感': { en: 'Self-Efficacy', desc: '对自己完成特定任务或应对挑战能力的信念。' },
-}
+const REMINDER_OPTIONS = [
+  { id: 'off', label: '不提醒', desc: '随心记录，不打扰' },
+  { id: 'morning', label: '早上 9:00', desc: '开启元气的一天' },
+  { id: 'noon', label: '中午 13:00', desc: '午后给自己一分钟' },
+  { id: 'evening', label: '晚上 21:00', desc: '睡前回顾这一天' },
+]
 
 const moodColors = {
   '平静': '#48654a', '低落': '#7e5731', '焦虑': '#9e422c',
@@ -30,25 +27,23 @@ const moodColors = {
   '不安': '#8a6bb0', '疲惫': '#6b7280',
 }
 
-// 解析 note 中的强度标记（格式：【强度淡淡地】），返回 { intensity, note }
-const parseMoodNote = (note) => {
-  if (!note) return { intensity: null, note: '' }
-  const m = note.match(/^【强度(淡淡地|适中|很强烈)】/)
-  if (m) return { intensity: m[1], note: note.slice(m[0].length) }
-  return { intensity: null, note }
-}
-
 export default function Me() {
-  const [isDark, setIsDark] = useDarkMode()
+  const [isDark, toggleDark] = useDarkMode()
   const [avatar, setAvatar] = useState(() => localStorage.getItem('liubai-avatar') || '🌿')
   const [showAvatarPicker, setShowAvatarPicker] = useState(false)
   const [showAbout, setShowAbout] = useState(false)
+  const [showReminder, setShowReminder] = useState(false)
+  const [showPrivacy, setShowPrivacy] = useState(false)
+  const [reminder, setReminder] = useState(() => localStorage.getItem('liubai-reminder') || 'off')
+  const [reminderResult, setReminderResult] = useState(null)
   const [profile, setProfile] = useState({ nickname: '旅行者' })
   const [editing, setEditing] = useState(false)
   const [stats, setStats] = useState({ moods: 0, journals: 0, talks: 0 })
   const [recentJournals, setRecentJournals] = useState([])
   const [moodHistory, setMoodHistory] = useState([])
   const [favorites, setFavorites] = useState([])
+  const [talkHistory, setTalkHistory] = useState([])
+  const [removeTalkId, setRemoveTalkId] = useState(null)
   const [loading, setLoading] = useState(true)
   const [activeTab, setActiveTab] = useState(0)
 
@@ -70,19 +65,27 @@ export default function Me() {
           .upsert({ id: user.id, nickname: '旅行者' }, { onConflict: 'id' })
       }
 
-      const [moodRes, journalRes, talkRes, moodHistRes, journalListRes, favRes] = await Promise.all([
+      const weekAgo = new Date()
+      weekAgo.setDate(weekAgo.getDate() - 14)
+
+      const [moodRes, journalRes, talkRes, moodHistRes, journalListRes, favRes, talkListRes] = await Promise.all([
         supabase.from('mood_records').select('id', { count: 'exact', head: true }).eq('user_id', user.id),
         supabase.from('journal_entries').select('id', { count: 'exact', head: true }).eq('user_id', user.id),
         supabase.from('talk_records').select('id', { count: 'exact', head: true }).eq('user_id', user.id),
-        supabase.from('mood_records').select('mood, emoji, created_at, note').eq('user_id', user.id).order('created_at', { ascending: false }).limit(14),
+        supabase.from('mood_records').select('mood, emoji, created_at, note')
+          .eq('user_id', user.id).gte('created_at', weekAgo.toISOString())
+          .order('created_at', { ascending: false }).limit(30),
         supabase.from('journal_entries').select('content, created_at').eq('user_id', user.id).order('created_at', { ascending: false }).limit(3),
         supabase.from('dictionary_favorites').select('entry_zh, created_at').eq('user_id', user.id).order('created_at', { ascending: false }),
+        supabase.from('talk_records').select('id, mode, content, created_at')
+          .eq('user_id', user.id).order('created_at', { ascending: false }).limit(20),
       ])
 
       setStats({ moods: moodRes.count || 0, journals: journalRes.count || 0, talks: talkRes.count || 0 })
       setMoodHistory(moodHistRes.data || [])
       setRecentJournals(journalListRes.data || [])
       setFavorites(favRes.data || [])
+      setTalkHistory(talkListRes.data || [])
       setLoading(false)
     }
     load()
@@ -100,6 +103,18 @@ export default function Me() {
     if (!user) return
     await supabase.from('dictionary_favorites').delete().eq('user_id', user.id).eq('entry_zh', entryZh)
     setFavorites(prev => prev.filter(f => f.entry_zh !== entryZh))
+  }
+
+  // 删除一段心里话（两段式确认）
+  const removeTalk = async (id) => {
+    if (removeTalkId !== id) {
+      setRemoveTalkId(id)
+      setTimeout(() => setRemoveTalkId(prev => (prev === id ? null : prev)), 2500)
+      return
+    }
+    await supabase.from('talk_records').delete().eq('id', id)
+    setTalkHistory(prev => prev.filter(t => t.id !== id))
+    setRemoveTalkId(null)
   }
 
   const handleSignOut = async () => {
@@ -168,6 +183,111 @@ export default function Me() {
                 关闭
               </button>
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* 提醒设置弹窗 */}
+      {showReminder && (
+        <div
+          className="fixed inset-0 z-[60] flex items-end justify-center"
+          style={{ background: 'rgba(0,0,0,0.4)', backdropFilter: 'blur(4px)', WebkitBackdropFilter: 'blur(4px)' }}
+          onClick={() => setShowReminder(false)}
+          role="dialog"
+          aria-modal="true"
+          aria-label="打卡提醒设置"
+        >
+          <div
+            className="w-full max-w-lg bg-surface rounded-t-[2rem] p-8 pb-12 animate-slide-up"
+            onClick={e => e.stopPropagation()}
+          >
+            <div className="w-10 h-1 bg-outline-variant/30 rounded-full mx-auto mb-8" />
+            <div className="flex items-center gap-3 mb-1">
+              <span className="material-symbols-outlined text-primary text-2xl">notifications</span>
+              <h2 className="font-display text-2xl font-medium text-on-surface">每日打卡提醒</h2>
+            </div>
+            <p className="text-on-surface-variant text-sm font-light leading-relaxed mb-6">
+              设定后，超过该时间且今天还没打卡时，App 会在首页轻轻提醒你。
+            </p>
+            <div className="space-y-2.5 mb-6">
+              {REMINDER_OPTIONS.map(opt => (
+                <button
+                  key={opt.id}
+                  onClick={() => {
+                    setReminder(opt.id)
+                    localStorage.setItem('liubai-reminder', opt.id)
+                    setReminderResult(null)
+                    setupDailyReminder(opt.id).then(r => setReminderResult(r))
+                  }}
+                  aria-pressed={reminder === opt.id}
+                  className={`w-full flex items-center justify-between px-5 py-3.5 rounded-2xl border transition-all duration-300 active:scale-[0.99] ${
+                    reminder === opt.id
+                      ? 'bg-primary-container/40 border-primary/30'
+                      : 'bg-surface-container-low border-transparent hover:bg-surface-container'
+                  }`}
+                >
+                  <span>
+                    <span className={`block text-sm font-light ${reminder === opt.id ? 'text-primary' : 'text-on-surface'}`}>{opt.label}</span>
+                    <span className="block text-[11px] text-outline mt-0.5">{opt.desc}</span>
+                  </span>
+                  {reminder === opt.id && (
+                    <span className="material-symbols-outlined text-primary text-lg">check_circle</span>
+                  )}
+                </button>
+              ))}
+            </div>
+            <p className="text-[11px] text-outline-variant text-center mt-3">
+              {reminderResult
+                ? reminderResult.ok
+                  ? '✅ 已设置系统级每日提醒（手机通知）'
+                  : `⚠️ ${reminderResult.reason || '设置失败'}`
+                : '设置后会在手机通知栏提醒你打卡'}
+            </p>
+          </div>
+        </div>
+      )}
+
+      {/* 隐私说明弹窗 */}
+      {showPrivacy && (
+        <div
+          className="fixed inset-0 z-[60] flex items-end justify-center"
+          style={{ background: 'rgba(0,0,0,0.4)', backdropFilter: 'blur(4px)', WebkitBackdropFilter: 'blur(4px)' }}
+          onClick={() => setShowPrivacy(false)}
+          role="dialog"
+          aria-modal="true"
+          aria-label="隐私说明"
+        >
+          <div
+            className="w-full max-w-lg bg-surface rounded-t-[2rem] p-8 pb-12 animate-slide-up"
+            onClick={e => e.stopPropagation()}
+          >
+            <div className="w-10 h-1 bg-outline-variant/30 rounded-full mx-auto mb-8" />
+            <div className="flex items-center gap-3 mb-1">
+              <span className="material-symbols-outlined text-primary text-2xl">lock</span>
+              <h2 className="font-display text-2xl font-medium text-on-surface">隐私说明</h2>
+            </div>
+            <div className="space-y-4 mt-6">
+              {[
+                { icon: 'database', title: '数据存储', desc: '你的日记、情绪记录、收藏等数据保存在私有云端数据库中（行级安全），只有你自己能读写。' },
+                { icon: 'cloud_sync', title: 'AI 对话', desc: '与「留白」的对话会发送给第三方 AI 服务（DeepSeek）用于生成回复，不会被用于其他目的。' },
+                { icon: 'warning', title: '温馨提示', desc: '请不要在日记或对话中输入身份证号、银行卡号等敏感信息。' },
+                { icon: 'download', title: '数据导出', desc: '数据导出与账号注销功能正在开发中，敬请期待。' },
+              ].map(item => (
+                <div key={item.title} className="flex items-start gap-3">
+                  <span className="material-symbols-outlined text-primary/60 text-base mt-0.5">{item.icon}</span>
+                  <div>
+                    <p className="text-on-surface text-sm font-medium">{item.title}</p>
+                    <p className="text-on-surface-variant text-xs font-light leading-relaxed mt-0.5">{item.desc}</p>
+                  </div>
+                </div>
+              ))}
+            </div>
+            <button
+              onClick={() => setShowPrivacy(false)}
+              className="mt-8 w-full bg-surface-container-low text-on-surface py-3 rounded-full text-sm font-light transition-all active:scale-95"
+            >
+              知道了
+            </button>
           </div>
         </div>
       )}
@@ -298,6 +418,11 @@ export default function Me() {
                   {favorites.length}
                 </span>
               )}
+              {tab === '心里话' && talkHistory.length > 0 && (
+                <span className="ml-1.5 text-[10px] bg-primary-container text-primary px-1.5 py-0.5 rounded-full">
+                  {talkHistory.length}
+                </span>
+              )}
             </button>
           ))}
         </div>
@@ -348,7 +473,7 @@ export default function Me() {
                   <span className="text-on-surface font-light">{isDark ? '深色模式' : '浅色模式'}</span>
                 </div>
                 <button
-                  onClick={() => setIsDark(!isDark)}
+                  onClick={() => toggleDark(!isDark)}
                   aria-label="切换深浅色模式"
                   className={`w-12 h-6 rounded-full transition-all duration-300 relative flex-shrink-0 ${
                     isDark ? 'bg-primary' : 'bg-surface-container-high'
@@ -366,17 +491,22 @@ export default function Me() {
                 设置
               </h3>
               <div className="space-y-1">
-                <button className="group w-full flex items-center justify-between p-4 rounded-xl hover:bg-surface-container-low transition-colors duration-300">
+                <button onClick={() => setShowPrivacy(true)} className="group w-full flex items-center justify-between p-4 rounded-xl hover:bg-surface-container-low transition-colors duration-300">
                   <div className="flex items-center gap-4">
                     <span className="material-symbols-outlined text-outline group-hover:text-primary transition-colors">lock</span>
                     <span className="text-on-surface font-light">隐私设置</span>
                   </div>
                   <span className="material-symbols-outlined text-outline-variant text-sm">chevron_right</span>
                 </button>
-                <button className="group w-full flex items-center justify-between p-4 rounded-xl hover:bg-surface-container-low transition-colors duration-300">
+                <button onClick={() => setShowReminder(true)} className="group w-full flex items-center justify-between p-4 rounded-xl hover:bg-surface-container-low transition-colors duration-300">
                   <div className="flex items-center gap-4">
                     <span className="material-symbols-outlined text-outline group-hover:text-primary transition-colors">notifications</span>
                     <span className="text-on-surface font-light">提醒</span>
+                    {reminder !== 'off' && (
+                      <span className="text-[10px] px-2 py-0.5 rounded-full bg-primary-container/40 text-primary">
+                        {REMINDER_OPTIONS.find(o => o.id === reminder)?.label}
+                      </span>
+                    )}
                   </div>
                   <span className="material-symbols-outlined text-outline-variant text-sm">chevron_right</span>
                 </button>
@@ -404,9 +534,15 @@ export default function Me() {
               </div>
             ) : moodHistory.length > 0 ? (
               <>
+                {/* 近 14 天情绪趋势 */}
                 <div className="bg-surface-container-lowest rounded-2xl p-5 mb-4 border border-outline-variant/10"
                   style={{ boxShadow: '0 4px 24px rgba(49,51,47,0.04)' }}>
-                  <p className="text-[11px] text-outline uppercase tracking-widest mb-4">情绪分布（近 14 次）</p>
+                  <p className="text-[11px] text-outline uppercase tracking-widest mb-3">情绪趋势(近14天)</p>
+                  <MoodTrendChart records={moodHistory} days={14} />
+                </div>
+                <div className="bg-surface-container-lowest rounded-2xl p-5 mb-4 border border-outline-variant/10"
+                  style={{ boxShadow: '0 4px 24px rgba(49,51,47,0.04)' }}>
+                  <p className="text-[11px] text-outline uppercase tracking-widest mb-4">情绪分布(近14天)</p>
                   {Object.entries(moodCounts).sort((a, b) => b[1] - a[1]).map(([mood, count]) => (
                     <div key={mood} className="flex items-center gap-3 mb-3 last:mb-0">
                       <span className="text-sm text-on-surface-variant w-10 shrink-0">{mood}</span>
@@ -466,8 +602,54 @@ export default function Me() {
           </section>
         )}
 
-        {/* ── Tab: 收藏 ── */}
+        {/* ── Tab: 心里话 ── */}
         {activeTab === 2 && (
+          <section className="animate-fade-in">
+            {loading ? (
+              <div className="space-y-3">
+                {[0,1,2].map(i => <div key={i} className="bg-surface-container-low p-4 rounded-xl h-20 animate-pulse" />)}
+              </div>
+            ) : talkHistory.length > 0 ? (
+              <div className="space-y-3">
+                <p className="text-[11px] text-outline tracking-widest uppercase pl-1 mb-3">
+                  你留住过的 {talkHistory.length} 段对话
+                </p>
+                {talkHistory.map(t => (
+                  <div key={t.id} className="bg-surface-container-lowest rounded-2xl p-5 border border-outline-variant/10"
+                    style={{ boxShadow: '0 2px 16px rgba(49,51,47,0.04)' }}>
+                    <div className="flex items-center justify-between mb-2.5">
+                      <div className="flex items-center gap-2">
+                        <span className="text-[10px] px-2 py-0.5 rounded-full bg-primary-container/40 text-primary">
+                          {t.mode || '自由倾诉'}
+                        </span>
+                        <span className="text-[10px] text-outline tracking-wide">
+                          {new Date(t.created_at).toLocaleDateString('zh-CN', { month: 'long', day: 'numeric' })}
+                        </span>
+                      </div>
+                      <button
+                        onClick={() => removeTalk(t.id)}
+                        aria-label="删除这段心里话"
+                        className={`text-[11px] px-2.5 py-1 rounded-full border transition-all duration-300 active:scale-95 ${
+                          removeTalkId === t.id
+                            ? 'bg-error-container/40 border-error/40 text-error'
+                            : 'border-outline-variant/15 text-outline hover:text-error'
+                        }`}
+                      >
+                        {removeTalkId === t.id ? '再点一次删除' : '删除'}
+                      </button>
+                    </div>
+                    <p className="text-on-surface text-sm font-light leading-relaxed whitespace-pre-line line-clamp-6">{t.content}</p>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <EmptyState icon="chat_bubble_outline" title="还没有留下的心里话" action="chat_bubble" actionLabel="去聊聊" to="/talk" />
+            )}
+          </section>
+        )}
+
+        {/* ── Tab: 收藏 ── */}
+        {activeTab === 3 && (
           <section className="animate-fade-in">
             {loading ? (
               <div className="space-y-3">
@@ -476,7 +658,7 @@ export default function Me() {
             ) : favorites.length > 0 ? (
               <div className="space-y-3">
                 {favorites.map((fav, i) => {
-                  const entry = ALL_ENTRIES[fav.entry_zh]
+                  const entry = ALL_ENTRIES.find(e => e.zh === fav.entry_zh)
                   return (
                     <div key={i}
                       className="bg-surface-container-lowest rounded-2xl p-5 flex items-start gap-4 border border-outline-variant/10"
@@ -513,15 +695,7 @@ export default function Me() {
                 </div>
               </div>
             ) : (
-              <div className="text-center py-16">
-                <span className="material-symbols-outlined text-outline-variant text-4xl block mb-3">bookmark_border</span>
-                <p className="text-on-surface-variant text-sm font-light mb-4">还没有收藏的词条</p>
-                <Link to="/dictionary"
-                  className="bg-primary-container text-on-primary-container px-6 py-2.5 rounded-full text-sm font-medium inline-flex items-center gap-2 hover:opacity-90 transition-opacity active:scale-95 shadow-glow-soft">
-                  <span className="material-symbols-outlined text-sm">menu_book</span>
-                  去心理词典看看
-                </Link>
-              </div>
+              <EmptyState icon="menu_book" title="还没有收藏的词条" action="menu_book" actionLabel="去心理词典看看" to="/dictionary" />
             )}
           </section>
         )}

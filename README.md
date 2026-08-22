@@ -1,273 +1,150 @@
 <div align="center">
 
-<img src="logo.png" width="120" alt="留白 Logo" />
+# 🌿 留白 LiuBai
 
-# 留白 Liubai
+**「心灵的数字庇护所」**
 
-### 给心灵留一点空白
-
-一个专注心理健康与情绪关怀的移动端应用，为用户搭建一个可以记录情绪、倾诉心事、探索自我的宁静数字空间。
-
-[功能特性](#-功能特性) · [技术栈](#-技术栈) · [项目结构](#-项目结构) · [快速开始](#-快速开始) · [设计系统](#-设计系统) · [数据模型](#-数据模型)
+一个温暖、安静的心理健康陪伴应用。在这里，你可以记录心情、写下日记、诉说心事——不需要完美，只需要真实。
 
 </div>
 
 ---
 
-## ✨ 功能特性
+## ✨ 功能
 
-### 每日情绪打卡
-- 8 种情绪 emoji 快速选择（平静、愉悦、低落、难过、焦虑、不安、烦躁、疲惫）
-- 3 档情绪强度标记（淡淡地 / 适中 / 很强烈）
-- 可添加文字备注，记录情绪背后的故事
-- 累计记录统计，养成关注内心的习惯
-
-### AI 倾听对话
-- **命名感受模式**：描述你的感受，AI 帮你找到它的心理学名字，并关联词典词条
-- **自由倾诉模式**：一个不评判、不建言的树洞，只陪伴和共情
-- 基于 Supabase Edge Functions 的 AI 对话服务
-- 自动识别心理学概念并用高亮标注
-
-### 每日日记
-- 每日随机引导问题，降低写作门槛
-- 极简写作编辑器，专注内容本身
-- AI 生成心理学视角的温柔反思，不说教、只陪伴
-- 历史日记回顾，看见自己的变化
-
-### 心理词典
-- 12 个精选心理学词条（冒名顶替综合症、情绪颗粒度、反刍思维等）
-- 卡片式翻阅体验，支持搜索
-- 词条收藏功能，建立你的专属心理词库
-- 词条来源标注（心理学文献、认知行为疗法、依恋理论等）
-
-### 4-4-6-2 呼吸练习
-- 吸气 4 秒 → 屏息 4 秒 → 呼气 6 秒 → 屏息 2 秒
-- 动态呼吸引导圆圈，视觉化呼吸节奏
-- 3 种练习时长（2 分钟 / 5 分钟 / 10 分钟）
-- 完成统计与循环进度追踪
-
-### 每周情绪报告
-- 自动汇总本周情绪打卡、日记、倾诉数据
-- 可视化情绪分布图表
-- AI 生成个性化情绪周报，提供温暖的自我关怀建议
-- 本周日记摘要速览
-
-### 个人中心
-- 自定义头像与昵称
-- 情绪打卡 / 日记 / 倾诉统计数据
-- 情绪分布趋势（近 14 次）
-- 词典收藏管理
-- 深色 / 浅色模式切换
-
-### 其他
-- 新用户引导动画（Onboarding）
-- 深色 / 浅色模式全适配
-- Supabase 身份认证与数据存储
-- Android 原生状态栏适配
+- 🎭 **每日情绪打卡** — 每天记录一次，8 种情绪 + 3 档强度 + 一句话备注，可随时修改
+- 🌈 **情绪趋势图** — 近 14 天气情绪轨迹（时间跨度自适应），看自己慢慢变好的样子
+- 📓 **心情日记** — 引导式日记 + AI 心理学视角反思
+- 📖 **心理词典** — 42 个心理学词条，每日推荐一条，可搜索、可收藏
+- 💬 **AI 对话** — 「命名感受 / 自由倾诉」两种模式，AI 树洞倾听；想留就留、想丢就丢
+- 🛡️ **危机干预** — 识别到自伤/绝望关键词时，立即给出专业求助热线（前端 + 后端双兜底）
+- ⏩ **流式 AI 输出** — 打字机效果，等待不再漫长
+- 🌬️ **呼吸练习** — 4-7-8 呼吸法，片刻宁静
+- 📊 **每周报告** — AI 生成的周报 + 历史周报保存
+- 🔥 **连续打卡** — 坚持记录本身就是一种自我关怀
+- 🔔 **每日提醒** — 系统级本地通知（可选时间）
+- 🌙 **深色模式** — 跟随系统，或手动切换
 
 ---
 
 ## 🛠 技术栈
 
-| 类别 | 技术 | 版本 |
-| --- | --- | --- |
-| 前端框架 | React | 18.3 |
-| 构建工具 | Vite | 5.4 |
-| 路由 | React Router DOM | 6.27 |
-| 样式方案 | Tailwind CSS | 3.4 |
-| 移动端封装 | Capacitor | 8.2 |
-| 后端服务 | Supabase（Auth + Database + Edge Functions） | 2.x |
-| 图标 | Material Symbols | - |
-| 包管理 | npm | - |
+| 层 | 技术 |
+|---|---|
+| 前端 | React 18 · Vite 5 · Tailwind CSS 3 |
+| 图标 | Material Symbols（自托管 · 子集化 41KB） |
+| 字体 | @fontsource 自托管（Lora / Manrope / Plus Jakarta Sans + 系统中文） |
+| 移动端 | Capacitor 8（Android） |
+| 后端 | Supabase（PostgreSQL + RLS + Edge Functions） |
+| AI | DeepSeek（经 Supabase Edge Function 代理，SSE 流式） |
+
+### 工程亮点
+
+- **深色模式**：全部颜色用 CSS 变量（`:root` / `.dark` + `rgb(var(--x) / <alpha-value>)`），透明度类在深浅色下均正确
+- **图标字体子集化**：3.96MB → 41KB，不依赖 Google CDN（国内可加载），用 `scripts/subset-icons.py` 可重新生成
+- **路由懒加载**：每个页面独立 chunk，首屏只下首页代码
+- **数据库安全**：所有表启用 RLS（Row Level Security），用户只能读写自己的数据
+- **AI 上下文控制**：对话只带最近 12 条，控制 token 与费用
+- **危机干预兜底**：edge function 与前端双重检测，AI 不可走时也有一层安全网
 
 ---
 
-## 📁 项目结构
+## 🚀 本地开发
 
-```
-liubai_app/
-├── src/
-│   ├── components/            # 公共组件
-│   │   ├── BottomNav.jsx      #   底部导航栏
-│   │   └── TopBar.jsx         #   顶部导航栏
-│   ├── hooks/
-│   │   └── useDarkMode.js     #   深色模式 Hook
-│   ├── lib/
-│   │   ├── ai.js              #   AI 对话封装 + 系统提示词
-│   │   └── supabase.js        #   Supabase 客户端
-│   ├── pages/
-│   │   ├── Onboarding.jsx     #   新用户引导
-│   │   ├── Auth.jsx           #   登录注册
-│   │   ├── Home.jsx           #   首页（情绪打卡 + 功能入口）
-│   │   ├── Talk.jsx           #   AI 倾听对话
-│   │   ├── DailyJournal.jsx   #   每日日记
-│   │   ├── MindDictionary.jsx #   心理词典
-│   │   ├── Breathing.jsx      #   呼吸练习
-│   │   ├── WeeklyReport.jsx   #   每周报告
-│   │   └── Me.jsx             #   个人中心
-│   ├── plugins/
-│   │   └── StatusBarColor.ts  #   Capacitor 状态栏插件
-│   ├── App.jsx                # 应用入口 + 路由配置
-│   ├── main.jsx               # React 挂载点
-│   └── index.css              # 全局样式
-├── android/                   # Android 原生工程
-├── capacitor.config.json      # Capacitor 配置
-├── tailwind.config.js         # Tailwind 主题配置
-├── vite.config.js             # Vite 构建配置
-├── index.html                 # HTML 模板
-└── package.json
-```
-
----
-
-## 🚀 快速开始
-
-### 环境要求
-
-- Node.js 18+
-- npm
-- Android SDK（仅 Android 构建需要）
-- Supabase 项目（需自行创建）
-
-### 安装与开发
+> 需要 Node.js 18+
 
 ```bash
-# 克隆仓库
-git clone https://github.com/Sakura050512/liubai_app.git
-cd liubai_app
-
-# 安装依赖
 npm install
-
-# 启动开发服务器
-npm run dev
+npm run dev        # 启动 Vite 开发服务器 (http://localhost:5173)
+npm run build      # 构建生产版本到 dist/
+npm run preview    # 预览生产构建
 ```
 
-### 环境变量
+---
 
-在 `src/lib/supabase.js` 中配置你的 Supabase 项目地址和 API Key：
+## 📦 Android 构建
 
-```javascript
-import { createClient } from '@supabase/supabase-js'
-
-const supabase = createClient(
-  'YOUR_SUPABASE_URL',
-  'YOUR_SUPABASE_ANON_KEY'
-)
-
-export { supabase }
-```
-
-你还需要在 Supabase 中创建一个 Edge Function `ai-chat` 用于 AI 对话服务。
-
-### 构建 Android 应用
+> **需要 JDK 21**（Capacitor 8 标准）。如本地构建报 JDK/toolchain 错误，请：
+> 1. 安装 JDK 21，设置 `JAVA_HOME` 指向它；或
+> 2. 在用户级 `~/.gradle/gradle.properties` 添加：
+>    `org.gradle.java.home=<你的JDK21路径>`
+>    `org.gradle.java.installations.paths=<JDK17路径>,<JDK21路径>`
 
 ```bash
-# 构建 Web 资源
-npm run build
-
-# 同步到 Android 工程
-npx cap sync android
-
-# 构建 Debug APK
+npm run build && npx cap sync android
 cd android && ./gradlew assembleDebug
-```
-
-APK 输出路径：
-```
-android/app/build/outputs/apk/debug/app-debug.apk
+# APK 位于 android/app/build/outputs/apk/debug/app-debug.apk
 ```
 
 ---
 
-## 🎨 设计系统
+## 🗄 Supabase 后端设置
 
-### 色彩体系
+### 1. 创建项目
 
-基于 Material Design 3 的自定义配色，以鼠尾草绿为主色调，营造自然、宁静的氛围。
+在 [supabase.com](https://supabase.com) 创建项目，记下项目地址（如 `xxxx.supabase.co`）。
 
-| 名称 | 色值 | 用途 |
-| --- | --- | --- |
-| Primary | `#48654a` | 主色 · 按钮 · 强调 |
-| Surface | `#fcf9f6` | 页面背景 · 卡片底色 |
-| Secondary | `#7e5731` | 次要色 · 词条标签 |
-| Tertiary | `#496553` | 辅助色 · 呼吸练习 |
-| Error | `#9e422c` | 错误提示 |
+### 2. 配置环境变量
 
-### 字体方案
+复制 `.env.example` 为 `.env`，填入：
 
-| 用途 | 字体 |
-| --- | --- |
-| 标题展示 | Lora, Noto Serif SC, serif |
-| 页面标题 | Manrope, Plus Jakarta Sans, PingFang SC |
-| 正文 | Plus Jakarta Sans, PingFang SC |
+```
+VITE_SUPABASE_URL=https://xxxx.supabase.co
+VITE_SUPABASE_ANON_KEY=<你的 anon key>
+```
 
-### 动效
+### 3. 建表 + 安全策略
 
-内置 6 组自定义动画，营造柔和的交互体验：
+镜像（Supabase Dashboard → SQL Editor → New query → 粘贴 → Run）：
 
-| 动画 | 用途 |
-| --- | --- |
-| `fade-in` | 页面 / 元素淡入 |
-| `slide-up` | 卡片上滑入场 |
-| `scale-in` | 弹窗缩放入场 |
-| `float` | 图标悬浮效果 |
-| `breathe` | 呼吸圆圈脉冲 |
-| `pulse-soft` | 柔和呼吸灯效果 |
+```
+supabase/migrations/20260822000000_init.sql
+```
 
----
+该脚本幂等，会创建全部 5 张表 + RLS 策略。
 
-## 🗄 数据模型
+### 4. 部署 AI Edge Function
 
-项目使用 Supabase PostgreSQL 作为数据库，主要表结构如下：
+**函数**：`supabase/functions/ai-chat/`
 
-| 表名 | 说明 | 关键字段 |
-| --- | --- | --- |
-| `mood_records` | 情绪打卡记录 | `user_id`, `mood`, `emoji`, `note`, `created_at` |
-| `journal_entries` | 日记记录 | `user_id`, `prompt`, `content`, `ai_reflection`, `created_at` |
-| `talk_records` | 倾诉对话记录 | `user_id`, `created_at` |
-| `dictionary_favorites` | 词典收藏 | `user_id`, `entry_zh`, `created_at` |
-| `users_profile` | 用户资料 | `id`, `nickname` |
+**配置密钥**：Edge Function 环境变量需设 `DEEPSEEK_KEY`（DeepSeek API Key）。
+
+```bash
+npx supabase login
+npx supabase link --project-ref <你的项目ref>
+npx supabase secrets set DEEPSEEK_KEY=<你的DeepSeek Key>
+npx supabase functions deploy ai-chat
+```
+
+或直接在 Dashboard 的 Edge Functions 页面创建 `ai-chat`，粘贴 `supabase/functions/ai-chat/index.ts` 内容并部署。
+
+> 部署后，前端即时流式 + 危机兜底功能才生效。
 
 ---
 
-## 🤖 AI 能力
+## 📁 目录结构
 
-应用通过 Supabase Edge Functions 调用 AI 模型，内置 3 套系统提示词：
-
-| 场景 | 提示词角色 | 特点 |
-| --- | --- | --- |
-| 倾听对话（命名感受） | AI 情绪伴侣 | 温柔共情，识别心理学概念并标注 |
-| 倾听对话（自由倾诉） | AI 倾听者 | 不评判、不建言，纯粹陪伴 |
-| 日记反思 | 日记反思助手 | 心理学视角简短反思，像一封短信 |
-| 每周报告 | AI 情绪分析师 | 概括情绪基调 + 关注模式 + 关怀建议 |
-
----
-
-## 📱 应用截图
-
-<div align="center">
-
-| 首页 | AI 对话 | 日记 | 词典 |
-| :---: | :---: | :---: | :---: |
-| 情绪打卡 | 倾听陪伴 | 写下心声 | 探索内心 |
-
-| 呼吸练习 | 每周报告 | 个人中心 | 引导页 |
-| :---: | :---: | :---: | :---: |
-| 4-4-6-2 呼吸法 | 情绪分析 | 统计概览 | 初次见面 |
-
-</div>
+```
+src/
+  components/     # 通用组件 (TopBar / BottomNav / MoodTrendChart / EmptyState)
+  pages/          # 页面 (Home / Journal / Talk / Dictionary / Me / Breathing / WeeklyReport)
+  lib/            # 工具 (supabase / ai / date / moodNote / notification)
+  data/           # 词典单一数据源
+  hooks/          # useDarkMode (深色模式, 跟随系统)
+  assets/fonts/   # 自托管图标字体 (子集化)
+supabase/
+  migrations/     # 建表 SQL (幂等)
+  functions/      # AI Edge Function (SSE 流式)
+scripts/
+  subset-icons.py # 图标字体子集化脚本
+```
 
 ---
 
-## 📄 许可证
+## 📄 协议
 
-MIT License
+[MIT License](./LICENSE)
 
 ---
 
-<div align="center">
-
-**留白** — 在喧嚣的世界里，为你留一片安静的空间。
-
-</div>
+*留白 —— 给心灵留一点呼吸的空间。*

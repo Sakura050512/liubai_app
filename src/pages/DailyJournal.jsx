@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react'
 import { supabase } from '../lib/supabase'
 import { chat, SYSTEM_PROMPT_JOURNAL } from '../lib/ai'
+import { todayRange, localDateLabel } from '../lib/date'
 import TopBar from '../components/TopBar'
 import BottomNav from '../components/BottomNav'
 
@@ -11,10 +12,6 @@ const PROMPTS = [
   '如果今天的情绪有颜色，会是什么色？为什么？',
   '今天有没有什么你想对自己说的话？',
 ]
-
-const now = new Date()
-const dateStr = `${now.getMonth() + 1}月${now.getDate()}日 · 星期${'日一二三四五六'[now.getDay()]}`
-const todayStr = now.toISOString().slice(0, 10)
 
 export default function DailyJournal() {
   const [promptIdx] = useState(() => Math.floor(Math.random() * PROMPTS.length))
@@ -32,13 +29,15 @@ export default function DailyJournal() {
       const { data: { user } } = await supabase.auth.getUser()
       if (!user) return
 
+      const { start: dayStart, end: dayEnd } = todayRange()
+
       // 今天的日记
       const { data: todayData } = await supabase
         .from('journal_entries')
         .select('*')
         .eq('user_id', user.id)
-        .gte('created_at', `${todayStr}T00:00:00`)
-        .lte('created_at', `${todayStr}T23:59:59`)
+        .gte('created_at', dayStart.toISOString())
+        .lte('created_at', dayEnd.toISOString())
         .limit(1)
 
       if (todayData && todayData.length > 0) {
@@ -54,7 +53,7 @@ export default function DailyJournal() {
         .from('journal_entries')
         .select('content, created_at, ai_reflection')
         .eq('user_id', user.id)
-        .lt('created_at', `${todayStr}T00:00:00`)
+        .lt('created_at', dayStart.toISOString())
         .order('created_at', { ascending: false })
         .limit(5)
 
@@ -88,13 +87,15 @@ export default function DailyJournal() {
     const { data: { user } } = await supabase.auth.getUser()
     if (!user) return
 
+    const { start: dayStart, end: dayEnd } = todayRange()
+
     // 检查今天是否已有记录（更新 or 插入）
     const { data: existing } = await supabase
       .from('journal_entries')
       .select('id')
       .eq('user_id', user.id)
-      .gte('created_at', `${todayStr}T00:00:00`)
-      .lte('created_at', `${todayStr}T23:59:59`)
+      .gte('created_at', dayStart.toISOString())
+      .lte('created_at', dayEnd.toISOString())
       .limit(1)
 
     if (existing && existing.length > 0) {
@@ -120,7 +121,7 @@ export default function DailyJournal() {
         <header className="mb-6 animate-fade-in">
           <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-surface-container-low border border-outline-variant/10">
             <span className="material-symbols-outlined text-primary/70" style={{ fontSize: 15 }}>calendar_today</span>
-            <p className="text-[11px] tracking-[0.18em] text-on-surface-variant">{dateStr}</p>
+            <p className="text-[11px] tracking-[0.18em] text-on-surface-variant">{localDateLabel()}</p>
           </div>
         </header>
 

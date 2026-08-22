@@ -1,16 +1,18 @@
-import { useEffect, useState } from 'react'
-import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
+import { lazy, Suspense, useEffect, useState } from 'react'
+import { HashRouter, Routes, Route, Navigate } from 'react-router-dom'
 import { supabase } from './lib/supabase'
 import { useDarkMode } from './hooks/useDarkMode'
-import Onboarding from './pages/Onboarding'
-import Auth from './pages/Auth'
-import Home from './pages/Home'
-import MindDictionary from './pages/MindDictionary'
-import Talk from './pages/Talk'
-import DailyJournal from './pages/DailyJournal'
-import Me from './pages/Me'
-import Breathing from './pages/Breathing'
-import WeeklyReport from './pages/WeeklyReport'
+
+// 路由级懒加载：首屏只加载当前页面代码，其余按需下载
+const Onboarding = lazy(() => import('./pages/Onboarding'))
+const Auth = lazy(() => import('./pages/Auth'))
+const Home = lazy(() => import('./pages/Home'))
+const MindDictionary = lazy(() => import('./pages/MindDictionary'))
+const Talk = lazy(() => import('./pages/Talk'))
+const DailyJournal = lazy(() => import('./pages/DailyJournal'))
+const Me = lazy(() => import('./pages/Me'))
+const Breathing = lazy(() => import('./pages/Breathing'))
+const WeeklyReport = lazy(() => import('./pages/WeeklyReport'))
 
 export default function App() {
   const [session, setSession] = useState(null)
@@ -52,22 +54,23 @@ export default function App() {
 
   // 新用户 onboarding
   if (showOnboarding) {
-    return <Onboarding onDone={() => setShowOnboarding(false)} />
+    return (
+      <Suspense fallback={<Splash />}>
+        <Onboarding onDone={() => setShowOnboarding(false)} />
+      </Suspense>
+    )
   }
 
   // 加载中
   if (loading) {
-    return (
-      <div className="min-h-screen bg-surface flex flex-col items-center justify-center font-headline">
-        <p className="text-3xl font-light text-primary tracking-widest animate-fade-in">留白</p>
-      </div>
-    )
+    return <Splash />
   }
 
   return (
-    <BrowserRouter>
+    <HashRouter>
       <div className="relative w-full bg-surface" style={{ height: '100dvh', overflowX: 'hidden' }}>
-        <Routes>
+        <Suspense fallback={<Splash />}>
+          <Routes>
           {!session ? (
             <>
               <Route path="/auth" element={<Auth />} />
@@ -85,8 +88,18 @@ export default function App() {
               <Route path="*" element={<Navigate to="/" replace />} />
             </>
           )}
-        </Routes>
+          </Routes>
+        </Suspense>
       </div>
-    </BrowserRouter>
+    </HashRouter>
+  )
+}
+
+// 启动/路由切换时的加载画面
+function Splash() {
+  return (
+    <div className="min-h-screen bg-surface flex flex-col items-center justify-center font-headline">
+      <p className="text-3xl font-light text-primary tracking-widest animate-fade-in">留白</p>
+    </div>
   )
 }

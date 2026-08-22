@@ -1,14 +1,11 @@
 import { useState, useEffect } from 'react'
 import { Link } from 'react-router-dom'
 import { supabase } from '../lib/supabase'
+import { todayRange, localDateLabel, calcStreak } from '../lib/date'
+import { ALL_ENTRIES, todayEntry as getTodayEntry, todayEntryIndex as getTodayEntryIndex } from '../data/dictionary'
+import { INTENSITIES, buildMoodNote, parseMoodNote } from '../lib/moodNote'
 import TopBar from '../components/TopBar'
 import BottomNav from '../components/BottomNav'
-
-const todayEntry = {
-  zh: '冒名顶替综合症',
-  en: 'Impostor Syndrome',
-  desc: '一种觉得自己的成就是靠运气、随时会被人看穿的感觉。',
-}
 
 const moods = [
   { emoji: '😌', label: '平静' },
@@ -21,103 +18,105 @@ const moods = [
   { emoji: '😴', label: '疲惫' },
 ]
 
-// 三档情绪强度
-const intensities = [
-  { label: '淡淡地', icon: '🍃' },
-  { label: '适中', icon: '🌿' },
-  { label: '很强烈', icon: '🌊' },
-]
-
-// 强度标记：存进 note 时带上前缀，读取时解析
-const INTENSITY_PREFIX = '【强度'
-
-const navCards = [
-  {
-    to: '/talk',
-    icon: 'chat_bubble',
-    iconBg: 'bg-primary-container/50',
-    iconColor: 'text-primary',
-    title: '和留白聊聊',
-    desc: '为情绪命名，或只是说说——AI 都在这里倾听',
-    tag: 'AI 对话',
-    tagColor: 'text-primary',
-    tagBg: 'bg-primary-container/40',
-  },
-  {
-    to: '/dictionary',
-    icon: 'menu_book',
-    iconBg: 'bg-secondary-container/40',
-    iconColor: 'text-secondary',
-    title: '心理词典',
-    desc: '解读内心的微妙信号，探索情绪背后的科学逻辑',
-    tag: '82 个词条',
-    tagColor: 'text-secondary',
-    tagBg: 'bg-secondary-container/40',
-  },
-  {
-    to: '/breathing',
-    icon: 'air',
-    iconBg: 'bg-tertiary-container/40',
-    iconColor: 'text-tertiary',
-    title: '呼吸练习',
-    desc: '4-4-6-2 呼吸法，随时平复情绪',
-    tag: '冥想',
-    tagColor: 'text-tertiary',
-    tagBg: 'bg-tertiary-container/40',
-  },
-  {
-    to: '/weekly',
-    icon: 'bar_chart',
-    iconBg: 'bg-surface-container',
-    iconColor: 'text-outline',
-    title: '每周报告',
-    desc: '查看本周情绪趋势和 AI 分析',
-    tag: '数据',
-    tagColor: 'text-outline',
-    tagBg: 'bg-surface-container',
-  },
-]
-
 export default function Home() {
   const [selectedMood, setSelectedMood] = useState(null)
   const [moodDone, setMoodDone] = useState(false)
   const [streak, setStreak] = useState(0)
+  const [totalMoods, setTotalMoods] = useState(0)
   const [loadingMood, setLoadingMood] = useState(true)
   const [noteInput, setNoteInput] = useState('')
   const [showNote, setShowNote] = useState(false)
   const [pendingMoodIdx, setPendingMoodIdx] = useState(null)
   const [intensityIdx, setIntensityIdx] = useState(1) // 默认"适中"
+  const [saving, setSaving] = useState(false)
+  const [saveError, setSaveError] = useState('')
+  // 今天的打卡记录（存在则"修改"走 update，否则 insert）
+  const [todayRecord, setTodayRecord] = useState(null)
+  // 打卡提醒横幅（设定提醒时间后、当天未打卡时显示）
+  const [showReminderBanner, setShowReminderBanner] = useState(false)
 
-  const now = new Date()
-  const dateStr = `${now.getMonth() + 1}月${now.getDate()}日 · 星期${'日一二三四五六'[now.getDay()]}`
-  const todayStr = now.toISOString().slice(0, 10)
+  const dateStr = localDateLabel()
+  const todayEntry = getTodayEntry()
+  const todayEntryIdx = getTodayEntryIndex()
+
+  const navCards = [
+    {
+      to: '/dictionary',
+      icon: 'menu_book',
+      iconBg: 'bg-secondary-container/40',
+      iconColor: 'text-secondary',
+      title: '心理词典',
+      desc: '解读内心的微妙信号，探索情绪背后的科学逻辑',
+      tag: `${ALL_ENTRIES.length} 个词条`,
+      tagColor: 'text-secondary',
+      tagBg: 'bg-secondary-container/40',
+    },
+    {
+      to: '/breathing',
+      icon: 'air',
+      iconBg: 'bg-tertiary-container/40',
+      iconColor: 'text-tertiary',
+      title: '呼吸练习',
+      desc: '4-4-6-2 呼吸法，随时平复情绪',
+      tag: '冥想',
+      tagColor: 'text-tertiary',
+      tagBg: 'bg-tertiary-container/40',
+    },
+    {
+      to: '/weekly',
+      icon: 'bar_chart',
+      iconBg: 'bg-surface-container',
+      iconColor: 'text-outline',
+      title: '每周报告',
+      desc: '查看本周情绪趋势和 AI 分析',
+      tag: '数据',
+      tagColor: 'text-outline',
+      tagBg: 'bg-surface-container',
+    },
+  ]
 
   useEffect(() => {
     const checkTodayMood = async () => {
       const { data: { user } } = await supabase.auth.getUser()
       if (!user) return
 
+      const { start, end } = todayRange()
+
+      // 今天的打卡记录（一天一条，取最新）
       const { data } = await supabase
         .from('mood_records')
-        .select('mood, emoji')
+        .select('id, mood, emoji, note')
         .eq('user_id', user.id)
-        .gte('created_at', `${todayStr}T00:00:00`)
-        .lte('created_at', `${todayStr}T23:59:59`)
+        .gte('created_at', start.toISOString())
+        .lte('created_at', end.toISOString())
+        .order('created_at', { ascending: false })
         .limit(1)
 
       if (data && data.length > 0) {
-        const idx = moods.findIndex(m => m.emoji === data[0].emoji)
-        setSelectedMood(idx >= 0 ? idx : 0)
         setMoodDone(true)
+        setTodayRecord(data[0])
       }
 
-      const { count } = await supabase
-        .from('mood_records')
-        .select('created_at', { count: 'exact', head: true })
-        .eq('user_id', user.id)
+      // 连续打卡天数（最近 60 条日期算连续）+ 累计次数
+      const [countRes, datesRes] = await Promise.all([
+        supabase.from('mood_records').select('created_at', { count: 'exact', head: true }).eq('user_id', user.id),
+        supabase.from('mood_records').select('created_at').eq('user_id', user.id)
+          .order('created_at', { ascending: false }).limit(60),
+      ])
 
-      setStreak(count || 0)
+      setTotalMoods(countRes.count || 0)
+      setStreak(calcStreak((datesRes.data || []).map(r => r.created_at)))
       setLoadingMood(false)
+
+      // 打卡提醒：超过设定时间且今天还没打卡时，显示提醒横幅
+      // （用本地 data 判断，不能用 moodDone——setState 异步，此刻还是旧值）
+      const reminder = localStorage.getItem('liubai-reminder') || 'off'
+      const threshold = { morning: 9, noon: 13, evening: 21 }[reminder]
+      const hour = new Date().getHours()
+      const checkedInToday = data && data.length > 0
+      if (threshold !== undefined && hour >= threshold && !checkedInToday) {
+        setShowReminderBanner(true)
+      }
     }
 
     checkTodayMood()
@@ -125,35 +124,71 @@ export default function Home() {
 
   // 第一步：选情绪，弹出备注框
   const handleMoodSelect = (i) => {
+    if (saving) return
     setPendingMoodIdx(i)
     setSelectedMood(i)
     setIntensityIdx(1)
+    setSaveError('')
     setShowNote(true)
   }
 
-  // 第二步：确认记录（有无备注都可以）
+  // 修改今天的打卡：回到编辑状态并预填已有内容
+  const startEditToday = () => {
+    if (!todayRecord || saving) return
+    const idx = moods.findIndex(m => m.label === todayRecord.mood)
+    const { intensity, note } = parseMoodNote(todayRecord.note)
+    setPendingMoodIdx(idx >= 0 ? idx : 0)
+    setSelectedMood(idx >= 0 ? idx : 0)
+    const intenIdx = INTENSITIES.findIndex(i => i.label === intensity)
+    setIntensityIdx(intenIdx >= 0 ? intenIdx : 1)
+    setNoteInput(note || '')
+    setSaveError('')
+    setShowNote(true)
+    setMoodDone(false) // 关键：切到"未打卡"分支才会显示编辑表单
+  }
+
+  // 取消编辑：回到已打卡状态
+  const cancelEdit = () => {
+    setShowNote(false)
+    setSelectedMood(null)
+    setSaveError('')
+    setMoodDone(true)
+  }
+
+  // 第二步：确认记录（有无备注都可以；已有今日记录则更新）
   const handleMoodConfirm = async () => {
     const i = pendingMoodIdx
-    setShowNote(false)
-    setTimeout(() => setMoodDone(true), 400)
+    if (i === null || saving) return
+    setSaving(true)
+    setSaveError('')
 
     const { data: { user } } = await supabase.auth.getUser()
-    if (!user) return
+    if (!user) {
+      setSaveError('登录状态已失效，请重新登录')
+      setSaving(false)
+      return
+    }
 
     // 强度标记并入 note，便于周报/统计解析；无备注时仅存强度
-    const intensityTag = `【强度${intensities[intensityIdx].label}】`
-    const note = noteInput.trim()
-      ? `${intensityTag}${noteInput.trim()}`
-      : intensityTag
+    const note = buildMoodNote(INTENSITIES[intensityIdx].label, noteInput)
+    const payload = { mood: moods[i].label, emoji: moods[i].emoji, note }
 
-    await supabase.from('mood_records').insert({
-      user_id: user.id,
-      mood: moods[i].label,
-      emoji: moods[i].emoji,
-      note,
-    })
+    const { error } = todayRecord
+      ? await supabase.from('mood_records').update(payload).eq('id', todayRecord.id)
+      : await supabase.from('mood_records').insert({ user_id: user.id, ...payload })
+
+    if (error) {
+      setSaveError('保存失败，请重试')
+      setSaving(false)
+      return
+    }
+
+    setSaving(false)
     setNoteInput('')
     setPendingMoodIdx(null)
+    setShowNote(false)
+    setTodayRecord(todayRecord ? { ...todayRecord, ...payload } : null)
+    setMoodDone(true)
   }
 
   return (
@@ -173,6 +208,23 @@ export default function Home() {
         style={{ maxWidth: '480px', padding: 'calc(64px + env(safe-area-inset-top)) 16px 0', boxSizing: 'border-box' }}
       >
         <div className="flex flex-col gap-5">
+
+          {/* 打卡提醒横幅 */}
+          {showReminderBanner && (
+            <div className="flex items-center gap-3 bg-primary-container/40 border border-primary/20 rounded-2xl px-4 py-3 animate-fade-in">
+              <span className="material-symbols-outlined text-primary flex-shrink-0">notifications</span>
+              <p className="flex-1 text-sm font-light text-on-surface">
+                今天还没有打卡，给自己一分钟 🌿
+              </p>
+              <button
+                onClick={() => setShowReminderBanner(false)}
+                aria-label="关闭提醒"
+                className="text-outline hover:text-primary transition-colors duration-300 flex-shrink-0"
+              >
+                <span className="material-symbols-outlined text-base">close</span>
+              </button>
+            </div>
+          )}
 
           {/* Hero */}
           <section className="pt-4 pb-1 animate-fade-in relative">
@@ -200,8 +252,12 @@ export default function Home() {
               <>
                 <div className="flex items-center justify-between mb-4">
                   <div>
-                    <p className="text-[11px] tracking-[0.2em] text-outline uppercase mb-0.5">每日打卡</p>
-                    <p className="text-on-surface font-light text-base">此刻你的感受是？</p>
+                    <p className="text-[11px] tracking-[0.2em] text-outline uppercase mb-0.5">
+                      {todayRecord ? '修改今日打卡' : '每日打卡'}
+                    </p>
+                    <p className="text-on-surface font-light text-base">
+                      {todayRecord ? '此刻的感受变了吗？' : '此刻你的感受是？'}
+                    </p>
                   </div>
                   <span className="material-symbols-outlined text-primary/40 text-2xl">mood</span>
                 </div>
@@ -233,7 +289,7 @@ export default function Home() {
                     <div className="flex items-center gap-2 mb-3">
                       <span className="text-[11px] text-outline tracking-widest uppercase flex-shrink-0">强度</span>
                       <div className="flex gap-1.5 flex-1">
-                        {intensities.map((it, i) => (
+                        {INTENSITIES.map((it, i) => (
                           <button
                             key={it.label}
                             aria-pressed={intensityIdx === i}
@@ -259,16 +315,21 @@ export default function Home() {
                       onKeyDown={e => e.key === 'Enter' && handleMoodConfirm()}
                       autoFocus
                     />
+                    {saveError && (
+                      <p role="status" className="text-error text-xs mt-2 pl-1">{saveError}</p>
+                    )}
                     <div className="flex gap-2 mt-3">
                       <button
                         onClick={handleMoodConfirm}
-                        className="flex-1 bg-primary text-on-primary py-3 rounded-full text-sm font-medium tracking-wide transition-all duration-300 active:scale-[0.98] shadow-glow-soft"
+                        disabled={saving}
+                        className="flex-1 bg-primary text-on-primary py-3 rounded-full text-sm font-medium tracking-wide transition-all duration-300 active:scale-[0.98] disabled:opacity-50 shadow-glow-soft"
                       >
-                        记录今天的心情
+                        {saving ? '记录中...' : todayRecord ? '更新今天的记录' : '记录今天的心情'}
                       </button>
                       <button
-                        onClick={() => { setShowNote(false); setSelectedMood(null) }}
-                        className="px-4 py-3 rounded-full text-sm font-light text-outline bg-surface-container-low hover:bg-surface-container transition-all duration-300"
+                        onClick={cancelEdit}
+                        disabled={saving}
+                        className="px-4 py-3 rounded-full text-sm font-light text-outline bg-surface-container-low hover:bg-surface-container transition-all duration-300 disabled:opacity-50"
                       >
                         取消
                       </button>
@@ -278,36 +339,52 @@ export default function Home() {
               </>
             ) : (
               /* 已打卡状态 */
-              <div className="flex items-center gap-4 py-1 animate-fade-in">
+              <div className="flex items-center gap-3 py-1 animate-fade-in">
                 <div className="w-10 h-10 rounded-full bg-primary-container flex items-center justify-center flex-shrink-0">
-                  <span className="text-xl">{selectedMood !== null ? moods[selectedMood].emoji : '😌'}</span>
+                  <span className="text-xl">{todayRecord ? todayRecord.emoji : '😌'}</span>
                 </div>
-                <div className="flex-1 min-w-0">
-                  <p className="text-on-surface font-light">
+                <div className="flex-1 min-w-0 space-y-1">
+                  <p className="text-sm text-on-surface font-light leading-snug">
                     今天感觉
                     <span className="text-primary font-medium mx-1">
-                      {selectedMood !== null ? moods[selectedMood].label : ''}
+                      {todayRecord ? todayRecord.mood : ''}
                     </span>
-                    ，已记录。
+                    ，已记录
                   </p>
-                  <p className="text-[11px] text-outline mt-0.5">
-                    已累计记录 {streak} 次 🌿
+                  {todayRecord?.note && parseMoodNote(todayRecord.note).note && (
+                    <p className="text-xs text-on-surface-variant font-light leading-snug line-clamp-2">
+                      {parseMoodNote(todayRecord.note).note}
+                    </p>
+                  )}
+                  <p className="text-[11px] text-outline">
+                    {streak > 0
+                      ? <>已连续打卡 <span className="text-primary font-medium">{streak}</span> 天 · 累计 {totalMoods} 次 🌿</>
+                      : <>已累计记录 {totalMoods} 次 🌿</>}
                   </p>
                 </div>
-                <Link to="/journal" className="flex-shrink-0 group" aria-label="去写日记">
-                  <span className="flex items-center justify-center w-9 h-9 rounded-full bg-surface-container-low transition-all duration-300 group-hover:bg-primary-container group-hover:scale-105 active:scale-90">
-                    <span className="material-symbols-outlined text-on-surface-variant group-hover:text-primary text-lg transition-colors">
-                      arrow_forward
+                <div className="flex items-center gap-1.5 flex-shrink-0">
+                  <button
+                    onClick={startEditToday}
+                    aria-label="修改今天的打卡"
+                    className="flex items-center justify-center w-9 h-9 rounded-full bg-surface-container-low transition-all duration-300 hover:bg-primary-container active:scale-90"
+                  >
+                    <span className="material-symbols-outlined text-on-surface-variant text-lg">edit</span>
+                  </button>
+                  <Link to="/journal" className="group" aria-label="去写日记">
+                    <span className="flex items-center justify-center w-9 h-9 rounded-full bg-surface-container-low transition-all duration-300 group-hover:bg-primary-container group-hover:scale-105 active:scale-90">
+                      <span className="material-symbols-outlined text-on-surface-variant group-hover:text-primary text-lg transition-colors">
+                        arrow_forward
+                      </span>
                     </span>
-                  </span>
-                </Link>
+                  </Link>
+                </div>
               </div>
             )}
           </section>
 
           {/* 今日词条 */}
           <section className="w-full animate-slide-up" style={{ animationDelay: '120ms' }}>
-            <Link to="/dictionary" className="block w-full" aria-label={`查看词条：${todayEntry.zh}`}>
+            <Link to="/dictionary" state={{ entryIndex: todayEntryIdx }} className="block w-full" aria-label={`查看词条：${todayEntry.zh}`}>
               <div
                   className="rounded-3xl p-5 w-full transition-all duration-300 active:scale-[0.99] bg-primary-container/25 dark:bg-primary-container/60 border border-primary/10"
                   style={{ boxShadow: '0 4px 24px rgba(49,51,47,0.04)' }}

@@ -1,25 +1,13 @@
 import { useState, useRef, useEffect } from 'react'
-import { Link } from 'react-router-dom'
+import { Link, useLocation } from 'react-router-dom'
 import { supabase } from '../lib/supabase'
+import { ALL_ENTRIES } from '../data/dictionary'
 import TopBar from '../components/TopBar'
 
-const ALL_ENTRIES = [
-  { zh: '冒名顶替综合症', en: 'Impostor Syndrome', source: '心理学文献', desc: '一种觉得自己的成就是靠运气、随时会被人看穿的感觉。它有名字，很多人都有。' },
-  { zh: '情绪颗粒度', en: 'Emotional Granularity', source: '情感神经科学', desc: '精确区分和描述自己情绪细节的能力。颗粒度越高，情绪调节能力往往越强。' },
-  { zh: '边界感', en: 'Psychological Boundaries', source: '心理咨询学', desc: '对自我与他人关系的清晰认知，了解哪些行为是可接受的，哪些是不可接受的。' },
-  { zh: '过度共情', en: 'Empathy Fatigue', source: '临床心理学', desc: '长期吸收他人的痛苦而导致的情感耗竭状态，常见于助人工作者和高敏感人群。' },
-  { zh: '反刍思维', en: 'Rumination', source: '认知行为疗法', desc: '反复回想过去的负面事件或问题，无法从中解脱。是抑郁和焦虑的常见认知模式。' },
-  { zh: '心理韧性', en: 'Resilience', source: '积极心理学', desc: '在逆境、创伤或压力后能够恢复、适应甚至成长的能力。它不是天生的，是可以培养的。' },
-  { zh: '依恋焦虑', en: 'Attachment Anxiety', source: '依恋理论', desc: '对亲密关系中被抛弃的强烈恐惧，常表现为反复确认对方的感情和过度依赖。' },
-  { zh: '认知失调', en: 'Cognitive Dissonance', source: '社会心理学', desc: '当一个人持有两种相互矛盾的信念时产生的心理不适感，常驱使人改变行为或观念来消除不适。' },
-  { zh: '习得性无助', en: 'Learned Helplessness', source: '行为心理学', desc: '经历多次失败后，即使环境改变、成功有可能，也不再尝试的心理状态。' },
-  { zh: '高敏感人格', en: 'Highly Sensitive Person', source: '人格心理学', desc: '对外界刺激（声音、情绪、细节）有比常人更深度的感知和处理，是一种天生的神经系统特质。' },
-  { zh: '焦虑性依附', en: 'Anxious Attachment', source: '依恋理论', desc: '在亲密关系中持续担心被忽视或抛弃，需要频繁的确认和安慰才能感到安心。' },
-  { zh: '自我效能感', en: 'Self-Efficacy', source: '社会认知理论', desc: '对自己完成特定任务或应对挑战能力的信念。高自我效能感的人更愿意尝试和坚持。' },
-]
-
 export default function MindDictionary() {
-  const [index, setIndex] = useState(0)
+  const location = useLocation()
+  // 支持从首页"今日词条"直达（state.entryIndex）；普通进入从第 0 条开始
+  const [index, setIndex] = useState(() => location.state?.entryIndex ?? 0)
   const [phase, setPhase] = useState('idle')
   const [slideDir, setSlideDir] = useState(0)
   const [searchText, setSearchText] = useState('')
@@ -113,6 +101,23 @@ export default function MindDictionary() {
     if (phase === 'out') return { opacity: 0, transform: `translateX(${-slideDir * 32}px)` }
     if (phase === 'in') return { opacity: 0, transform: `translateX(${slideDir * 32}px)` }
     return { opacity: 1, transform: 'translateX(0)' }
+  })()
+
+  // 导航圆点窗口化：词条多时只显示首尾 + 当前附近，避免 42 个圆点
+  const dotIndices = (() => {
+    const total = entries.length
+    if (total <= 9) return Array.from({ length: total }, (_, i) => i)
+    const cur = safeIndex
+    const set = new Set([0, total - 1, cur - 1, cur, cur + 1])
+    const arr = [...set].filter(i => i >= 0 && i < total).sort((a, b) => a - b)
+    const out = []
+    let prev = -1 // -1 保证索引 0 前不产生前导省略号
+    for (const i of arr) {
+      if (i - prev > 1) out.push('gap')
+      out.push(i)
+      prev = i
+    }
+    return out
   })()
 
   return (
@@ -257,17 +262,22 @@ export default function MindDictionary() {
               </div>
             </div>
 
-            {/* 进度点 */}
+            {/* 进度点（窗口化显示） */}
             {!searchText && (
-              <div className="flex gap-2 mb-8 flex-wrap justify-center max-w-[200px]">
-                {entries.map((_, i) => (
-                  <button
-                    key={i}
-                    onClick={() => !lockRef.current && setIndex(i)}
-                    className={`rounded-full transition-all duration-300 ${
-                      i === safeIndex ? 'w-6 h-2 bg-primary' : 'w-2 h-2 bg-outline-variant/40'
-                    }`}
-                  />
+              <div className="flex gap-2 mb-8 flex-wrap justify-center items-center max-w-[200px]">
+                {dotIndices.map((d, i) => (
+                  d === 'gap' ? (
+                    <span key={`g${i}`} className="text-outline-variant text-xs select-none leading-none">···</span>
+                  ) : (
+                    <button
+                      key={d}
+                      onClick={() => !lockRef.current && setIndex(d)}
+                      aria-label={`第 ${d + 1} 条`}
+                      className={`rounded-full transition-all duration-300 ${
+                        d === safeIndex ? 'w-6 h-2 bg-primary' : 'w-2 h-2 bg-outline-variant/40'
+                      }`}
+                    />
+                  )
                 ))}
               </div>
             )}

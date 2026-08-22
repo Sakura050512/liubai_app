@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react'
 import { supabase } from '../lib/supabase'
 import { chat } from '../lib/ai'
+import MoodTrendChart from '../components/MoodTrendChart'
 import TopBar from '../components/TopBar'
 
 const moodColors = {
@@ -9,12 +10,34 @@ const moodColors = {
   '不安': '#8a6bb0', '疲惫': '#6b7280',
 }
 
+// 轻量 Markdown 渲染：分段 + **加粗**（不引入额外依赖）
+const renderMarkdown = (text = '') =>
+  text.split(/\n{2,}/).map((para, i) => (
+    <p key={i} className="mb-2 last:mb-0 whitespace-pre-line">
+      {para.split(/(\*\*[^*]+\*\*)/g).map((part, j) =>
+        part.startsWith('**') && part.endsWith('**')
+          ? <strong key={j} className="font-medium text-on-surface">{part.slice(2, -2)}</strong>
+          : part
+      )}
+    </p>
+  ))
+
 export default function WeeklyReport() {
   const [loading, setLoading] = useState(true)
   const [aiLoading, setAiLoading] = useState(false)
   const [data, setData] = useState({ moods: [], journals: [], talks: 0 })
   const [report, setReport] = useState('')
   const [generated, setGenerated] = useState(false)
+  const [savedReports, setSavedReports] = useState([])
+  const [expandedReport, setExpandedReport] = useState(null)
+
+  // 读取历史周报（本地存储）
+  useEffect(() => {
+    try {
+      const list = JSON.parse(localStorage.getItem('liubai-weekly-reports') || '[]')
+      setSavedReports(list)
+    } catch { /* 忽略损坏数据 */ }
+  }, [])
 
   useEffect(() => {
     const load = async () => {
@@ -81,11 +104,33 @@ export default function WeeklyReport() {
       ])
       setReport(reply)
       setGenerated(true)
+      saveReport(reply)
     } catch {
-      setReport('本周你记录了 ' + data.moods.length + ' 次情绪，' + data.journals.length + ' 篇日记。坚持记录本身就是一种自我关怀。')
+      const fallback = '本周你记录了 ' + data.moods.length + ' 次情绪，' + data.journals.length + ' 篇日记。坚持记录本身就是一种自我关怀。'
+      setReport(fallback)
       setGenerated(true)
+      saveReport(fallback)
     }
     setAiLoading(false)
+  }
+
+  // 周报保存到本地（生成后不再重复花钱生成）
+  const saveReport = (reportText) => {
+    try {
+      const list = JSON.parse(localStorage.getItem('liubai-weekly-reports') || '[]')
+      const item = {
+        week: dateRange,
+        savedAt: new Date().toISOString(),
+        report: reportText,
+        moods: data.moods.length,
+        journals: data.journals.length,
+        talks: data.talks,
+      }
+      const idx = list.findIndex(r => r.week === dateRange)
+      if (idx >= 0) list[idx] = item
+      else list.unshift(item)
+      localStorage.setItem('liubai-weekly-reports', JSON.stringify(list.slice(0, 12)))
+    } catch { /* localStorage 不可用时静默忽略 */ }
   }
 
   // 统计情绪分布
@@ -100,6 +145,7 @@ export default function WeeklyReport() {
 
   return (
     <div className="min-h-screen bg-surface font-body text-on-surface flex flex-col">
+      {/* 返回按钮 */}
       <TopBar title="每周报告" back backTo="/" />
 
       <main className="flex-grow pb-16 px-5 max-w-lg mx-auto w-full" style={{ paddingTop: 'calc(80px + env(safe-area-inset-top))' }}>
@@ -115,18 +161,27 @@ export default function WeeklyReport() {
           </div>
         ) : (
           <>
-            {/* 数据卡片行 */}
+            {/* 数据卡片行（与"我的"页统计卡片同款 UI） */}
             <div className="grid grid-cols-3 gap-3 mb-5 animate-slide-up">
               {[
                 { icon: 'mood', label: '情绪打卡', value: data.moods.length, unit: '次', color: 'text-primary', bg: 'bg-primary-container/30' },
                 { icon: 'auto_stories', label: '日记', value: data.journals.length, unit: '篇', color: 'text-secondary', bg: 'bg-secondary-container/30' },
                 { icon: 'chat_bubble', label: '心里话', value: data.talks, unit: '条', color: 'text-tertiary', bg: 'bg-tertiary-container/30' },
               ].map(s => (
-                <div key={s.label} className="bg-surface-container-lowest rounded-2xl p-4 flex flex-col gap-2"
-                  style={{ boxShadow: '0 4px 24px rgba(49,51,47,0.04)' }}>
-                  <span className={`material-symbols-outlined ${s.color} p-1.5 ${s.bg} rounded-full text-lg w-fit`}>{s.icon}</span>
-                  <p className={`text-xl font-medium font-headline ${s.color}`}>{s.value}</p>
-                  <p className="text-on-surface-variant text-[11px] font-light">{s.label}</p>
+                <div key={s.label}
+                  className="bg-surface-container-lowest px-3.5 py-3.5 rounded-2xl flex flex-col items-center text-center border border-outline-variant/10"
+                  style={{ boxShadow: '0 4px 24px rgba(49,51,47,0.04)' }}
+                >
+                  <p className="text-on-surface-variant text-xs font-semibold mb-2 truncate">{s.label}</p>
+                  <div className="flex items-center gap-2">
+                    <span className={`material-symbols-outlined ${s.color} p-1.5 ${s.bg} rounded-full text-lg flex-shrink-0 flex items-center justify-center`}>
+                      {s.icon}
+                    </span>
+                    <p className={`text-2xl font-bold ${s.color} font-headline leading-tight`}>
+                      {s.value}
+                      <span className="text-xs font-light text-outline ml-0.5">{s.unit}</span>
+                    </p>
+                  </div>
                 </div>
               ))}
             </div>
@@ -157,6 +212,15 @@ export default function WeeklyReport() {
               </div>
             )}
 
+            {/* 本周情绪轨迹 */}
+            {data.moods.length > 0 && (
+              <div className="bg-surface-container-lowest rounded-2xl p-5 mb-5 animate-slide-up"
+                style={{ animationDelay: '120ms', boxShadow: '0 4px 24px rgba(49,51,47,0.04)' }}>
+                <p className="text-[11px] text-outline uppercase tracking-widest mb-3">本周情绪轨迹</p>
+                <MoodTrendChart records={data.moods} days={7} />
+              </div>
+            )}
+
             {/* AI 周报 */}
             <div className="bg-surface-container-lowest rounded-2xl p-5 mb-5 animate-slide-up"
               style={{ animationDelay: '160ms', boxShadow: '0 4px 24px rgba(49,51,47,0.04)' }}>
@@ -166,7 +230,9 @@ export default function WeeklyReport() {
               </div>
 
               {generated ? (
-                <p className="text-on-surface font-light text-sm leading-relaxed">{report}</p>
+                <div className="text-on-surface font-light text-sm leading-relaxed max-h-80 overflow-y-auto pr-1">
+                  {renderMarkdown(report)}
+                </div>
               ) : (
                 <div className="flex flex-col items-start gap-4">
                   <p className="text-on-surface-variant text-sm font-light">
@@ -201,6 +267,39 @@ export default function WeeklyReport() {
                 </div>
               )}
             </div>
+
+            {/* 历史周报（本地保存） */}
+            {savedReports.length > 0 && (
+              <div className="animate-slide-up" style={{ animationDelay: '200ms' }}>
+                <p className="text-[11px] text-outline uppercase tracking-widest mb-3 pl-1">历史周报</p>
+                <div className="space-y-3">
+                  {savedReports.map((r, i) => (
+                    <div key={i} className="bg-surface-container-low rounded-xl p-4">
+                      <button
+                        onClick={() => setExpandedReport(expandedReport === i ? null : i)}
+                        aria-expanded={expandedReport === i}
+                        className="w-full flex items-center justify-between text-left"
+                      >
+                        <span className="text-sm font-light text-on-surface">{r.week}</span>
+                        <span className="flex items-center gap-2">
+                          {r.moods !== undefined && (
+                            <span className="text-[10px] text-outline">情绪 {r.moods} · 日记 {r.journals}</span>
+                          )}
+                          <span className={`material-symbols-outlined text-outline text-base transition-transform duration-300 ${expandedReport === i ? 'rotate-180' : ''}`}>
+                            expand_more
+                          </span>
+                        </span>
+                      </button>
+                      {expandedReport === i && (
+                        <div className="text-on-surface-variant text-sm font-light leading-relaxed mt-3 pt-3 border-t border-outline-variant/10">
+                          {renderMarkdown(r.report)}
+                        </div>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
 
             {/* 本周日记摘要 */}
             {data.journals.length > 0 && (

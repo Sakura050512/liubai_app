@@ -2,6 +2,114 @@
 @tailwind components;
 @tailwind utilities;
 
+/* ============================================
+   颜色设计令牌（Material 3 风格）
+   浅色模式在 :root，深色模式在 .dark。
+   tailwind.config.js 中的颜色全部引用这些变量，
+   因此 bg-primary/30 这类带透明度的类也会跟随深色模式。
+   ============================================ */
+/* ============================================
+   图标字体：本地子集化版本（34 个用到的图标 + 连字组件）
+   由 material-symbols 官方 woff2 用 fonttools 子集化生成，
+   不依赖 Google Fonts CDN（国内可正常加载）。
+   如需新增图标：把名字加进 src/data/icons.js 对应处重新子集化。
+   ============================================ */
+@font-face {
+  font-family: 'Material Symbols Outlined';
+  font-style: normal;
+  font-weight: 100 700;
+  font-display: block;
+  src: url('./assets/fonts/material-symbols-outlined.woff2') format('woff2');
+}
+
+:root {
+  --on-surface-variant: 94 96 91;          /* #5e605b */
+  --on-surface: 49 51 47;                  /* #31332f */
+  --surface-container-lowest: 255 255 255; /* #ffffff */
+  --surface-container-highest: 227 227 220;/* #e3e3dc */
+  --surface: 252 249 246;                  /* #fcf9f6 */
+  --surface-container: 239 238 233;        /* #efeee9 */
+  --primary-fixed: 202 235 200;            /* #caebc8 */
+  --surface-container-low: 245 243 239;    /* #f5f3ef */
+  --on-primary-fixed: 41 70 45;            /* #29462d */
+  --inverse-surface: 14 14 13;             /* #0e0e0d */
+  --on-background: 49 51 47;               /* #31332f */
+  --inverse-primary: 219 253 217;          /* #dbfdd9 */
+  --primary: 72 101 74;                    /* #48654a */
+  --on-secondary-container: 111 74 37;     /* #6f4a25 */
+  --surface-dim: 218 219 211;              /* #dadbd3 */
+  --outline-variant: 178 178 172;          /* #b2b2ac */
+  --surface-variant: 227 227 220;          /* #e3e3dc */
+  --on-error: 255 247 246;                 /* #fff7f6 */
+  --on-secondary: 255 247 244;             /* #fff7f4 */
+  --on-primary-container: 60 88 62;        /* #3c583e */
+  --tertiary-container: 219 252 228;       /* #dbfce4 */
+  --primary-fixed-dim: 188 221 187;        /* #bcddbb */
+  --surface-container-high: 233 232 226;   /* #e9e8e2 */
+  --primary-dim: 60 89 63;                 /* #3c593f */
+  --outline: 122 123 118;                  /* #7a7b76 */
+  --secondary-fixed-dim: 255 202 155;      /* #ffca9b */
+  --on-tertiary-fixed: 52 80 62;           /* #34503e */
+  --tertiary-dim: 61 89 71;                /* #3d5947 */
+  --on-primary: 228 255 225;               /* #e4ffe1 */
+  --secondary-fixed: 255 220 191;          /* #ffdcbf */
+  --secondary-container: 255 220 191;      /* #ffdcbf */
+  --primary-container: 202 235 200;        /* #caebc8 */
+  --on-error-container: 116 36 16;         /* #742410 */
+  --secondary: 126 87 49;                  /* #7e5731 */
+  --on-tertiary-container: 70 98 80;       /* #466250 */
+  --error-container: 254 139 112;          /* #fe8b70 */
+  --tertiary: 73 101 83;                   /* #496553 */
+  --surface-tint: 72 101 74;               /* #48654a */
+  --secondary-dim: 112 75 38;              /* #704b26 */
+  --surface-bright: 252 249 246;           /* #fcf9f6 */
+  --background: 252 249 246;               /* #fcf9f6 */
+  --inverse-on-surface: 158 157 154;       /* #9e9d9a */
+  --on-primary-fixed-variant: 69 98 71;    /* #456247 */
+  --error: 158 66 44;                      /* #9e422c */
+  --on-tertiary: 231 255 236;              /* #e7ffec */
+}
+
+.dark {
+  --on-surface-variant: 193 201 186;       /* #c1c9ba */
+  --on-surface: 226 227 221;               /* #e2e3dd */
+  --surface-container-lowest: 38 41 35;    /* #262923 */
+  --surface-container-highest: 58 61 56;   /* #3a3d38 */
+  --surface: 26 28 24;                     /* #1a1c18 */
+  --surface-container: 42 45 39;           /* #2a2d27 */
+  --surface-container-low: 34 37 32;       /* #222520 */
+  --surface-container-high: 49 52 48;      /* #313430 */
+  --on-background: 226 227 221;            /* #e2e3dd */
+  --primary: 168 213 162;                  /* #a8d5a2 */
+  --primary-container: 45 74 48;           /* #2d4a30 */
+  --on-primary-container: 168 213 162;     /* #a8d5a2 */
+  --on-primary: 228 255 225;               /* #e4ffe1 */
+  --outline: 139 146 133;                  /* #8b9285 */
+  --outline-variant: 94 96 91;             /* #5e605b */
+  --secondary: 240 188 138;                /* #f0bc8a */
+  --secondary-container: 74 50 24;         /* #4a3218 */
+  --on-secondary-container: 255 220 191;   /* #ffdcbf */
+  --on-secondary: 61 40 19;                /* #3d2813 */
+  --tertiary: 168 213 162;                 /* #a8d5a2 */
+  --tertiary-container: 45 74 48;          /* #2d4a30 */
+  --on-tertiary-container: 201 232 207;    /* #c9e8cf */
+  --on-tertiary: 26 28 24;                 /* #1a1c18 */
+  --error: 255 180 161;                    /* #ffb4a1 */
+  --error-container: 147 55 37;            /* #933725 */
+  --on-error-container: 255 218 207;       /* #ffdacf */
+  --surface-dim: 26 28 24;                 /* #1a1c18 */
+  --surface-bright: 26 28 24;              /* #1a1c18 */
+  --background: 26 28 24;                  /* #1a1c18 */
+  --surface-variant: 58 61 56;             /* #3a3d38 */
+  --surface-tint: 168 213 162;             /* #a8d5a2 */
+}
+
+/* 深色模式下主按钮仍用深绿填充（文字强调色 primary 变浅，
+   但作为按钮背景需要保持深色以配合浅色 on-primary 文字） */
+.dark .bg-primary {
+  background-color: rgb(61 89 64 / var(--tw-bg-opacity, 1)); /* #3d5940 */
+}
+
 @layer base {
   * {
     box-sizing: border-box;
@@ -63,6 +171,15 @@
   }
 
   .material-symbols-outlined {
+    font-family: 'Material Symbols Outlined';
+    font-weight: normal;
+    font-style: normal;
+    display: inline-block;
+    line-height: 1;
+    white-space: nowrap;
+    direction: ltr;
+    -webkit-font-smoothing: antialiased;
+    font-feature-settings: 'liga';
     font-variation-settings: 'FILL' 0, 'wght' 300, 'GRAD' 0, 'opsz' 24;
     user-select: none;
   }
@@ -72,7 +189,7 @@
     outline: none;
   }
 
-  /* 深色模式全局变量覆盖 */
+  /* 深色模式全局背景 */
   .dark body {
     background-color: #1a1c18;
     color: #e2e3dd;
@@ -80,78 +197,6 @@
 
   .dark .glass {
     background-color: rgba(26, 28, 24, 0.80);
-  }
-
-  /* 深色模式下的卡片背景（lowest 比背景亮一级，保证层次） */
-  .dark .bg-surface {
-    background-color: #1a1c18;
-  }
-
-  .dark .bg-surface-container-lowest {
-    background-color: #262923;
-  }
-
-  .dark .bg-surface-container-low {
-    background-color: #222520;
-  }
-
-  .dark .bg-surface-container {
-    background-color: #2a2d27;
-  }
-
-  .dark .bg-surface-container-high {
-    background-color: #313430;
-  }
-
-  /* 深色模式文字 */
-  .dark .text-on-surface {
-    color: #e2e3dd;
-  }
-
-  .dark .text-on-surface-variant {
-    color: #c1c9ba;
-  }
-
-  .dark .text-outline {
-    color: #8b9285;
-  }
-
-  .dark .text-outline-variant {
-    color: #5e605b;
-  }
-
-  /* 深色模式主色 */
-  .dark .text-primary {
-    color: #a8d5a2;
-  }
-
-  .dark .bg-primary {
-    background-color: #3d5940;
-  }
-
-  .dark .bg-primary-container {
-    background-color: #2d4a30;
-  }
-
-  .dark .text-on-primary {
-    color: #e4ffe1;
-  }
-
-  .dark .text-on-primary-container {
-    color: #a8d5a2;
-  }
-
-  /* 深色模式次色 */
-  .dark .text-secondary {
-    color: #f0bc8a;
-  }
-
-  .dark .bg-secondary-container {
-    background-color: #4a3218;
-  }
-
-  .dark .bg-tertiary-container {
-    background-color: #2d4a30;
   }
 
   /* 深色模式底部导航毛玻璃 */

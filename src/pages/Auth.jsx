@@ -32,10 +32,17 @@ export default function Auth() {
       const { error } = await supabase.auth.signInWithPassword({ email, password })
       if (error) { setMsg('邮箱或密码错误'); setMsgType('error') }
     } else {
-      const { error } = await supabase.auth.signUp({ email, password })
+      const { data, error } = await supabase.auth.signUp({ email, password })
       if (error) {
         setMsg(error.message.includes('already registered') ? '该邮箱已注册，请直接登录' : error.message)
         setMsgType('error')
+      } else if (!data.session) {
+        // Supabase 开启了邮箱确认：注册成功但还没有 session
+        setMsg('注册成功！请前往邮箱查收确认邮件，确认后再登录')
+        setMsgType('success')
+      } else {
+        setMsg('注册成功！')
+        setMsgType('success')
       }
     }
     setLoading(false)
