@@ -3,6 +3,7 @@ import { supabase } from '../lib/supabase'
 import { chat, SYSTEM_PROMPT_JOURNAL } from '../lib/ai'
 import { todayRange, localDateLabel } from '../lib/date'
 import TopBar from '../components/TopBar'
+import ThemeToggleButton from '../components/ThemeToggleButton'
 import BottomNav from '../components/BottomNav'
 
 const PROMPTS = [
@@ -115,7 +116,7 @@ export default function DailyJournal() {
 
   return (
     <div className="min-h-screen bg-surface font-body text-on-surface flex flex-col">
-      <TopBar />
+      <TopBar right={<ThemeToggleButton />} />
       <main className="flex-grow pb-32 px-6 max-w-2xl mx-auto w-full" style={{ paddingTop: 'calc(84px + env(safe-area-inset-top))' }}>
 
         <header className="mb-6 animate-fade-in">

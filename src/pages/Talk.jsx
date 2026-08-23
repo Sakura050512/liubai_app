@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom'
 import { chat, SYSTEM_PROMPT_FEELING, SYSTEM_PROMPT_TALK, CRISIS_RE, CRISIS_REPLY } from '../lib/ai'
 import { supabase } from '../lib/supabase'
 import TopBar from '../components/TopBar'
+import ThemeToggleButton from '../components/ThemeToggleButton'
 import BottomNav from '../components/BottomNav'
 
 const MODES = [
@@ -171,7 +172,7 @@ export default function Talk() {
 
   return (
     <div className="min-h-screen bg-surface font-body text-on-surface flex flex-col">
-      <TopBar />
+      <TopBar right={<ThemeToggleButton />} />
 
       {/* 模式切换 */}
       <div

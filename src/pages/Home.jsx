@@ -6,7 +6,7 @@ import { ALL_ENTRIES, todayEntry as getTodayEntry, todayEntryIndex as getTodayEn
 import { INTENSITIES, buildMoodNote, parseMoodNote } from '../lib/moodNote'
 import TopBar from '../components/TopBar'
 import BottomNav from '../components/BottomNav'
-import { useTheme } from '../context/ThemeContext'
+import ThemeToggleButton from '../components/ThemeToggleButton'
 
 const moods = [
   { emoji: '😌', label: '平静' },
@@ -20,7 +20,6 @@ const moods = [
 ]
 
 export default function Home() {
-  const { isDark, toggleDark } = useTheme()
   const [selectedMood, setSelectedMood] = useState(null)
   const [moodDone, setMoodDone] = useState(false)
   const [streak, setStreak] = useState(0)
@@ -225,17 +224,7 @@ export default function Home() {
         paddingBottom: 'calc(80px + env(safe-area-inset-bottom))',
       }}
     >
-      <TopBar
-        right={
-          <button
-            onClick={() => toggleDark(!isDark)}
-            aria-label={isDark ? '切换到浅色模式' : '切换到深色模式'}
-            className="w-9 h-9 rounded-full flex items-center justify-center bg-surface-container-low border border-outline-variant/10 text-on-surface-variant transition-all duration-300 hover:text-primary active:scale-90"
-          >
-            <span className="material-symbols-outlined text-lg">{isDark ? 'light_mode' : 'dark_mode'}</span>
-          </button>
-        }
-      />
+      <TopBar right={<ThemeToggleButton />} />
 
       <main
         className="mx-auto w-full"

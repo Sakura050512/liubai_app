@@ -2,15 +2,28 @@ apply plugin: 'com.android.application'
 
 def versionPropsFile = file('version.properties')
 def appVersionCode = 1
+def appVersionName = '1.0.0'
 if (versionPropsFile.canRead()) {
     def Properties versionProps = new Properties()
     versionProps.load(new FileInputStream(versionPropsFile))
     appVersionCode = versionProps['VERSION_CODE'].toInteger() + 1
+    // 版本名进位规则:第三段 +1,达到 10 时第二段 +1、第三段归 0(避免 1.0.92 这类大数字)
+    def vn = versionProps['VERSION_NAME'] ?: '1.0.0'
+    def parts = vn.tokenize('.').collect { it.toInteger() }
+    if (parts.size() < 3) parts = [1, 0, 0]
+    parts[2] = parts[2] + 1
+    if (parts[2] >= 10) {
+        parts[2] = 0
+        parts[1] = parts[1] + 1
+    }
+    appVersionName = parts.join('.')
     versionProps['VERSION_CODE'] = appVersionCode.toString()
+    versionProps['VERSION_NAME'] = appVersionName
     versionProps.store(versionPropsFile.newWriter(), null)
 } else {
     def versionProps = new Properties()
     versionProps['VERSION_CODE'] = '1'
+    versionProps['VERSION_NAME'] = '1.0.0'
     versionProps.store(versionPropsFile.newWriter(), null)
 }
 
@@ -26,7 +39,7 @@ android {
         minSdkVersion rootProject.ext.minSdkVersion
         targetSdkVersion rootProject.ext.targetSdkVersion
         versionCode appVersionCode
-        versionName "1.0." + appVersionCode
+        versionName appVersionName
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
         aaptOptions {
              // Files and dirs to omit from the packaged assets dir, modified to accommodate modern web apps.
