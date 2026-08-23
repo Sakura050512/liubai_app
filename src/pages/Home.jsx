@@ -1,9 +1,11 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useMemo } from 'react'
 import { Link } from 'react-router-dom'
 import { supabase } from '../lib/supabase'
 import { todayRange, localDateLabel, calcStreak } from '../lib/date'
 import { ALL_ENTRIES, todayEntry as getTodayEntry, todayEntryIndex as getTodayEntryIndex } from '../data/dictionary'
 import { INTENSITIES, buildMoodNote, parseMoodNote } from '../lib/moodNote'
+import { MOOD_CATEGORIES, pickCard } from '../lib/garden'
+import { getSolarTerm } from '../lib/solar'
 import TopBar from '../components/TopBar'
 import BottomNav from '../components/BottomNav'
 import ThemeToggleButton from '../components/ThemeToggleButton'
@@ -35,8 +37,11 @@ export default function Home() {
   const [todayRecord, setTodayRecord] = useState(null)
   // 打卡提醒横幅（设定提醒时间后、当天未打卡时显示）
   const [showReminderBanner, setShowReminderBanner] = useState(false)
+  // 打卡成功后的激励卡片
+  const [moodCard, setMoodCard] = useState(null)
 
   const dateStr = localDateLabel()
+  const solarTerm = useMemo(() => getSolarTerm(), [])
   const todayEntry = getTodayEntry()
   const todayEntryIdx = getTodayEntryIndex()
 
@@ -212,6 +217,11 @@ export default function Home() {
     setShowNote(false)
     setTodayRecord(todayRecord ? { ...todayRecord, ...payload } : null)
     setMoodDone(true)
+
+    // 打卡成功 → 弹出激励卡片(文案按心情分类,复用花园文案池)
+    const m = moods[i]
+    const category = MOOD_CATEGORIES[m.label] || 'calm'
+    setMoodCard({ emoji: m.emoji, mood: m.label, message: pickCard(category) })
   }
 
   return (
@@ -254,6 +264,11 @@ export default function Home() {
             <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-surface-container-low border border-outline-variant/10 mb-4">
               <span className="material-symbols-outlined text-primary/70" style={{ fontSize: 15 }}>calendar_today</span>
               <p className="text-[11px] tracking-[0.18em] text-on-surface-variant">{dateStr}</p>
+              {solarTerm && (
+                <span className="text-[11px] text-primary/80 tracking-[0.14em] border-l border-outline-variant/20 pl-2.5 ml-0.5">
+                  {solarTerm.today ? solarTerm.name : `距${solarTerm.name}${solarTerm.daysAway}天`}
+                </span>
+              )}
             </div>
             <h2 className="font-display text-4xl font-medium leading-snug text-on-surface text-balance">
               给心灵留一点<br />
@@ -486,6 +501,45 @@ export default function Home() {
       </main>
 
       <BottomNav />
+
+      {/* 打卡成功激励卡片 */}
+      {moodCard && (
+        <div
+          className="fixed inset-0 z-[90] flex items-center justify-center p-6"
+          style={{ background: 'rgba(26,28,24,.45)', backdropFilter: 'blur(5px)' }}
+          onClick={(e) => e.target === e.currentTarget && setMoodCard(null)}
+        >
+          <div
+            role="dialog"
+            aria-label="打卡鼓励"
+            className="w-full max-w-sm rounded-3xl bg-surface-container-lowest border border-outline-variant/10 p-6 text-center animate-scale-in"
+            style={{ boxShadow: '0 24px 70px rgba(0,0,0,.22)' }}
+          >
+            {/* 动效:心情符号浮动 + 光晕 */}
+            <div className="relative inline-flex mb-3">
+              <div
+                aria-hidden="true"
+                className="absolute inset-0 rounded-full bg-primary-container/60 blur-xl"
+                style={{ transform: 'scale(1.6)' }}
+              />
+              <span className="relative text-5xl leading-none animate-float" style={{ animationDuration: '2.6s' }}>
+                {moodCard.emoji}
+              </span>
+            </div>
+            <p className="text-[11px] tracking-[0.2em] uppercase text-primary mb-1">已记录</p>
+            <h3 className="font-display text-xl font-medium text-on-surface mb-2">
+              今天感觉{moodCard.mood}
+            </h3>
+            <p className="text-sm text-on-surface-variant leading-relaxed">{moodCard.message}</p>
+            <button
+              onClick={() => setMoodCard(null)}
+              className="w-full py-3 rounded-full text-sm font-medium bg-primary text-on-primary mt-5 transition-all duration-300 active:scale-[0.98]"
+            >
+              收下这份鼓励
+            </button>
+          </div>
+        </div>
+      )}
 
       {/* FAB */}
       <div

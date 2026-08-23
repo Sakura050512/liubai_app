@@ -3,6 +3,7 @@ import { supabase } from '../lib/supabase'
 import { chat } from '../lib/ai'
 import MoodTrendChart from '../components/MoodTrendChart'
 import TopBar from '../components/TopBar'
+import ErrorState from '../components/ErrorState'
 
 const moodColors = {
   '平静': '#48654a', '低落': '#7e5731', '焦虑': '#9e422c',
@@ -24,6 +25,7 @@ const renderMarkdown = (text = '') =>
 
 export default function WeeklyReport() {
   const [loading, setLoading] = useState(true)
+  const [loadError, setLoadError] = useState('')
   const [aiLoading, setAiLoading] = useState(false)
   const [data, setData] = useState({ moods: [], journals: [], talks: 0 })
   const [report, setReport] = useState('')
@@ -62,6 +64,9 @@ export default function WeeklyReport() {
         journals: journalRes.data || [],
         talks: talkRes.count || 0,
       })
+      if (moodRes.error || journalRes.error || talkRes.error) {
+        setLoadError('周报加载失败,请稍后重试')
+      }
       setLoading(false)
     }
     load()
@@ -159,6 +164,8 @@ export default function WeeklyReport() {
           <div className="space-y-4">
             {[0,1,2].map(i => <div key={i} className="bg-surface-container-low rounded-2xl h-24 animate-pulse" />)}
           </div>
+        ) : loadError ? (
+          <ErrorState message={loadError} onRetry={() => window.location.reload()} />
         ) : (
           <>
             {/* 数据卡片行（与"我的"页统计卡片同款 UI） */}

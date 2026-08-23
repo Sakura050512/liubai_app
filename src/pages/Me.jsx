@@ -4,6 +4,7 @@ import { supabase } from '../lib/supabase'
 import { useTheme } from '../context/ThemeContext'
 import { ALL_ENTRIES } from '../data/dictionary'
 import { parseMoodNote } from '../lib/moodNote'
+import { localDayKey } from '../lib/date'
 import { setupDailyReminder } from '../lib/notification'
 import MoodTrendChart from '../components/MoodTrendChart'
 import EmptyState from '../components/EmptyState'
@@ -32,6 +33,7 @@ export default function Me() {
   const [avatar, setAvatar] = useState(() => localStorage.getItem('liubai-avatar') || '🌿')
   const [showAvatarPicker, setShowAvatarPicker] = useState(false)
   const [showAbout, setShowAbout] = useState(false)
+  const [exporting, setExporting] = useState(false)
   const [showReminder, setShowReminder] = useState(false)
   const [showPrivacy, setShowPrivacy] = useState(false)
   const [reminder, setReminder] = useState(() => localStorage.getItem('liubai-reminder') || 'off')
@@ -119,6 +121,43 @@ export default function Me() {
 
   const handleSignOut = async () => {
     await supabase.auth.signOut()
+  }
+
+  // 导出全部数据为 JSON 文件(情绪/日记/心里话/收藏)
+  const handleExport = async () => {
+    if (exporting) return
+    setExporting(true)
+    try {
+      const { data: { user } } = await supabase.auth.getUser()
+      if (!user) return
+      const [moods, journals, talks, favs] = await Promise.all([
+        supabase.from('mood_records').select('*').eq('user_id', user.id).order('created_at', { ascending: true }),
+        supabase.from('journal_entries').select('*').eq('user_id', user.id).order('created_at', { ascending: true }),
+        supabase.from('talk_records').select('*').eq('user_id', user.id).order('created_at', { ascending: true }),
+        supabase.from('dictionary_favorites').select('*').eq('user_id', user.id).order('created_at', { ascending: true }),
+      ])
+      const payload = {
+        app: '留白',
+        exportedAt: new Date().toISOString(),
+        mood_records: moods.data || [],
+        journal_entries: journals.data || [],
+        talk_records: talks.data || [],
+        dictionary_favorites: favs.data || [],
+      }
+      const blob = new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json' })
+      const url = URL.createObjectURL(blob)
+      const a = document.createElement('a')
+      a.href = url
+      a.download = `liubai-export-${localDayKey(new Date())}.json`
+      document.body.appendChild(a)
+      a.click()
+      a.remove()
+      URL.revokeObjectURL(url)
+    } catch {
+      /* 导出失败:保持现状即可 */
+    } finally {
+      setExporting(false)
+    }
   }
 
   const statCards = [
@@ -226,7 +265,7 @@ export default function Me() {
                       : 'bg-surface-container-low border-transparent hover:bg-surface-container'
                   }`}
                 >
-                  <span>
+                  <span className="flex-1 text-left min-w-0">
                     <span className={`block text-sm font-light ${reminder === opt.id ? 'text-primary' : 'text-on-surface'}`}>{opt.label}</span>
                     <span className="block text-[11px] text-outline mt-0.5">{opt.desc}</span>
                   </span>
@@ -271,15 +310,31 @@ export default function Me() {
                 { icon: 'database', title: '数据存储', desc: '你的日记、情绪记录、收藏等数据保存在私有云端数据库中（行级安全），只有你自己能读写。' },
                 { icon: 'cloud_sync', title: 'AI 对话', desc: '与「留白」的对话会发送给第三方 AI 服务（DeepSeek）用于生成回复，不会被用于其他目的。' },
                 { icon: 'warning', title: '温馨提示', desc: '请不要在日记或对话中输入身份证号、银行卡号等敏感信息。' },
-                { icon: 'download', title: '数据导出', desc: '数据导出与账号注销功能正在开发中，敬请期待。' },
+                { icon: 'download', title: '数据导出', desc: '导出全部记录(情绪/日记/心里话/收藏)为 JSON 文件', action: true },
               ].map(item => (
-                <div key={item.title} className="flex items-start gap-3">
-                  <span className="material-symbols-outlined text-primary/60 text-base mt-0.5">{item.icon}</span>
-                  <div>
-                    <p className="text-on-surface text-sm font-medium">{item.title}</p>
-                    <p className="text-on-surface-variant text-xs font-light leading-relaxed mt-0.5">{item.desc}</p>
+                item.action ? (
+                  <button
+                    key={item.title}
+                    onClick={handleExport}
+                    disabled={exporting}
+                    className="w-full flex items-start gap-3 text-left rounded-xl px-1 py-1 transition-all duration-200 active:scale-[0.99] disabled:opacity-60"
+                  >
+                    <span className="material-symbols-outlined text-primary/60 text-base mt-0.5">{item.icon}</span>
+                    <span className="flex-1">
+                      <span className="block text-on-surface text-sm font-medium">{item.title}</span>
+                      <span className="block text-on-surface-variant text-xs font-light leading-relaxed mt-0.5">{item.desc}</span>
+                    </span>
+                    <span className="material-symbols-outlined text-primary text-base mt-1">{exporting ? 'hourglass_top' : 'download'}</span>
+                  </button>
+                ) : (
+                  <div key={item.title} className="flex items-start gap-3">
+                    <span className="material-symbols-outlined text-primary/60 text-base mt-0.5">{item.icon}</span>
+                    <div>
+                      <p className="text-on-surface text-sm font-medium">{item.title}</p>
+                      <p className="text-on-surface-variant text-xs font-light leading-relaxed mt-0.5">{item.desc}</p>
+                    </div>
                   </div>
-                </div>
+                )
               ))}
             </div>
             <button
