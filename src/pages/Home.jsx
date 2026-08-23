@@ -6,6 +6,7 @@ import { ALL_ENTRIES, todayEntry as getTodayEntry, todayEntryIndex as getTodayEn
 import { INTENSITIES, buildMoodNote, parseMoodNote } from '../lib/moodNote'
 import TopBar from '../components/TopBar'
 import BottomNav from '../components/BottomNav'
+import { useTheme } from '../context/ThemeContext'
 
 const moods = [
   { emoji: '😌', label: '平静' },
@@ -19,6 +20,7 @@ const moods = [
 ]
 
 export default function Home() {
+  const { isDark, toggleDark } = useTheme()
   const [selectedMood, setSelectedMood] = useState(null)
   const [moodDone, setMoodDone] = useState(false)
   const [streak, setStreak] = useState(0)
@@ -72,6 +74,28 @@ export default function Home() {
       tag: '数据',
       tagColor: 'text-outline',
       tagBg: 'bg-surface-container',
+    },
+    {
+      to: '/garden',
+      icon: 'auto_awesome',
+      iconBg: 'bg-tertiary-container/40',
+      iconColor: 'text-tertiary',
+      title: '情绪花园',
+      desc: '每一次记录都是养分,看你的花园悄悄生长',
+      tag: '养成',
+      tagColor: 'text-tertiary',
+      tagBg: 'bg-tertiary-container/40',
+    },
+    {
+      to: '/sound',
+      icon: 'waves',
+      iconBg: 'bg-primary-container/40',
+      iconColor: 'text-primary',
+      title: '静心之声',
+      desc: '白噪音、雨声、海浪…让心安静下来',
+      tag: '声音',
+      tagColor: 'text-primary',
+      tagBg: 'bg-primary-container/40',
     },
   ]
 
@@ -201,7 +225,17 @@ export default function Home() {
         paddingBottom: 'calc(80px + env(safe-area-inset-bottom))',
       }}
     >
-      <TopBar showSearch />
+      <TopBar
+        right={
+          <button
+            onClick={() => toggleDark(!isDark)}
+            aria-label={isDark ? '切换到浅色模式' : '切换到深色模式'}
+            className="w-9 h-9 rounded-full flex items-center justify-center bg-surface-container-low border border-outline-variant/10 text-on-surface-variant transition-all duration-300 hover:text-primary active:scale-90"
+          >
+            <span className="material-symbols-outlined text-lg">{isDark ? 'light_mode' : 'dark_mode'}</span>
+          </button>
+        }
+      />
 
       <main
         className="mx-auto w-full"
@@ -214,7 +248,7 @@ export default function Home() {
             <div className="flex items-center gap-3 bg-primary-container/40 border border-primary/20 rounded-2xl px-4 py-3 animate-fade-in">
               <span className="material-symbols-outlined text-primary flex-shrink-0">notifications</span>
               <p className="flex-1 text-sm font-light text-on-surface">
-                今天还没有打卡，给自己一分钟 🌿
+                今天还没有打卡,给自己一分钟
               </p>
               <button
                 onClick={() => setShowReminderBanner(false)}
@@ -236,6 +270,23 @@ export default function Home() {
               给心灵留一点<br />
               <span className="italic text-primary">空白</span>。
             </h2>
+            {/* 右侧装饰:一株安静生长的嫩芽(呼应情绪花园) */}
+            <div
+              aria-hidden="true"
+              className="absolute right-0 bottom-0 w-20 h-24 pointer-events-none opacity-90 animate-float"
+              style={{ animationDuration: '7s' }}
+            >
+              <svg viewBox="0 0 96 112" fill="none" style={{ width: '100%', height: '100%' }}>
+                {/* 茎 */}
+                <path d="M50 108 C46 90 44 72 50 48" stroke="rgb(var(--tertiary))" strokeWidth="3.2" strokeLinecap="round" />
+                {/* 左叶 */}
+                <path d="M50 68 C34 64 22 52 24 38 C40 40 50 50 50 68 Z" fill="rgb(var(--primary))" opacity="0.82" />
+                {/* 右叶(略高) */}
+                <path d="M51 54 C68 48 78 34 76 22 C60 26 51 38 51 54 Z" fill="rgb(var(--tertiary))" opacity="0.9" />
+                {/* 顶芽 */}
+                <ellipse cx="51" cy="45" rx="5.5" ry="8.5" fill="rgb(var(--primary))" opacity="0.6" transform="rotate(18 51 45)" />
+              </svg>
+            </div>
             <div aria-hidden="true" className="absolute -top-6 -right-8 w-32 h-32 rounded-full bg-primary-container/30 blur-2xl -z-10" />
           </section>
 
@@ -358,8 +409,8 @@ export default function Home() {
                   )}
                   <p className="text-[11px] text-outline">
                     {streak > 0
-                      ? <>已连续打卡 <span className="text-primary font-medium">{streak}</span> 天 · 累计 {totalMoods} 次 🌿</>
-                      : <>已累计记录 {totalMoods} 次 🌿</>}
+                      ? <>已连续打卡 <span className="text-primary font-medium">{streak}</span> 天 · 累计 {totalMoods} 次</>
+                      : <>已累计记录 {totalMoods} 次</>}
                   </p>
                 </div>
                 <div className="flex items-center gap-1.5 flex-shrink-0">

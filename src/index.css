@@ -296,6 +296,403 @@
   }
 }
 
+/* ============================================
+   情绪花园页面(暖晨/夜场景,跟随深浅色模式)
+   ============================================ */
+.garden-page {
+  --sky1: #f3f1e3;
+  --sky2: #ebf0df;
+  --sky3: #fae6d2;
+  --hill-far: rgba(190, 208, 172, 0.55);
+  --hill-near: rgba(161, 189, 139, 0.5);
+  --orb-bg: #ffd9a8;
+  --orb-glow: rgba(255, 217, 168, 0.55);
+  --petal-a: #ffdfbe;
+  --petal-b: #d9e8c6;
+  --petal-c: #f4c9c9;
+  --sky-glow: rgba(255, 255, 255, 0.55);
+  --blob-a: rgba(255, 214, 165, 0.5);
+  --blob-b: rgba(178, 205, 152, 0.5);
+  --g-trunk1: #7fa06b;
+  --g-trunk2: #4a7c59;
+  --g-leaf1: #8fbf83;
+  --g-leaf2: #5d9168;
+  --g-grass: #6d9a63;
+  --g-mound1: #5d7f52;
+  --g-mound2: #3c5a3e;
+  --g-shadow: rgba(20, 40, 26, 0.28);
+  --g-seed: #8a6a3f;
+  --g-sprout: #7fb583;
+  --g-sprout-leaf: #9cc790;
+  --plant-glow: rgba(255, 224, 168, 0.22);
+}
+
+.dark .garden-page {
+  --sky1: #121a12;
+  --sky2: #182418;
+  --sky3: #24301f;
+  --hill-far: rgba(52, 80, 50, 0.55);
+  --hill-near: rgba(70, 103, 66, 0.5);
+  --orb-bg: #efe0b4;
+  --orb-glow: rgba(239, 224, 180, 0.4);
+  --petal-a: #c8b27c;
+  --petal-b: #5f7a5c;
+  --petal-c: #8a6a6a;
+  --sky-glow: rgba(255, 255, 255, 0.05);
+  --blob-a: rgba(74, 98, 62, 0.4);
+  --blob-b: rgba(92, 66, 92, 0.35);
+  --g-trunk1: #a3c794;
+  --g-trunk2: #6ba37c;
+  --g-leaf1: #aed8a6;
+  --g-leaf2: #7db589;
+  --g-grass: #8ab57e;
+  --g-mound1: #64875a;
+  --g-mound2: #46664f;
+  --g-shadow: rgba(0, 0, 0, 0.4);
+  --g-seed: #a88552;
+  --g-sprout: #a3d49b;
+  --g-sprout-leaf: #b5dcab;
+  --plant-glow: rgba(150, 196, 150, 0.2);
+}
+
+.garden-orb {
+  position: absolute;
+  top: 26px;
+  right: 28px;
+  width: 64px;
+  height: 64px;
+  border-radius: 50%;
+  /* 浅色:太阳 = 圆形,带暖金渐变 */
+  background: radial-gradient(circle at 40% 38%, #ffe9c4, var(--orb-bg) 58%, #f5c787);
+  -webkit-mask: none;
+  mask: none;
+  z-index: 1;
+}
+
+/* 深色:月亮 = 半月形 */
+.dark .garden-orb {
+  background: var(--orb-bg);
+  -webkit-mask: radial-gradient(circle at 68% 30%, transparent 0 56%, #000 58%);
+  mask: radial-gradient(circle at 68% 30%, transparent 0 56%, #000 58%);
+}
+
+.garden-orb-halo {
+  position: absolute;
+  top: 14px;
+  right: 16px;
+  width: 96px;
+  height: 96px;
+  border-radius: 50%;
+  background: radial-gradient(closest-side, var(--orb-glow), transparent);
+  pointer-events: none;
+}
+
+.garden-hill {
+  position: absolute;
+  border-radius: 50%;
+  pointer-events: none;
+}
+
+.garden-hill-far {
+  left: -12%;
+  right: -12%;
+  bottom: -110px;
+  height: 240px;
+  background: var(--hill-far);
+}
+
+.garden-hill-near {
+  left: -8%;
+  right: -18%;
+  bottom: -150px;
+  height: 280px;
+  background: var(--hill-near);
+}
+
+.garden-cloud {
+  position: absolute;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.78);
+  filter: blur(13px);
+  pointer-events: none;
+}
+
+.dark .garden-cloud {
+  background: rgba(255, 255, 255, 0.06);
+}
+
+/* 植物填满场景高度,不裁切(绝对定位 + 定高,规避 flex/百分比组合问题) */
+.plant-scene {
+  position: relative;
+}
+
+.plant-scene .plant-svg-wrap {
+  position: absolute;
+  left: 50%;
+  bottom: 0;
+  transform: translateX(-50%);
+  height: 100%;
+  aspect-ratio: 3 / 4;
+}
+
+.plant-scene .plant-svg-wrap svg {
+  display: block;
+  height: 100%;
+  width: auto;
+  filter: drop-shadow(0 8px 14px rgba(23, 48, 31, 0.26));
+}
+
+/* 植物背后柔光,深色模式下增强存在感 */
+.plant-glow {
+  position: absolute;
+  left: 50%;
+  bottom: 46px;
+  transform: translateX(-50%);
+  width: 230px;
+  height: 170px;
+  border-radius: 50%;
+  background: radial-gradient(closest-side, var(--plant-glow, rgba(255, 224, 168, 0.22)), transparent);
+  pointer-events: none;
+  z-index: 0;
+}
+
+
+
+.garden-petal {
+  position: absolute;
+  border-radius: 62% 38% 58% 42%;
+  opacity: 0.65;
+  animation: gardenPetalFall 9s linear infinite;
+  pointer-events: none;
+}
+
+/* 网格渐变光斑(大半径模糊色块,营造柔和景深) */
+.garden-blob {
+  position: absolute;
+  border-radius: 50%;
+  filter: blur(64px);
+  pointer-events: none;
+}
+
+.garden-blob-a {
+  width: 230px;
+  height: 230px;
+  left: -70px;
+  top: -60px;
+  background: var(--blob-a);
+}
+
+.garden-blob-b {
+  width: 270px;
+  height: 270px;
+  right: -90px;
+  bottom: 60px;
+  background: var(--blob-b);
+}
+
+/* 纸张颗粒纹理(极淡噪点,消除纯色平涂感) */
+.garden-grain {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  opacity: 0.045;
+  background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='160' height='160'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2'/><feColorMatrix type='saturate' values='0'/></filter><rect width='160' height='160' filter='url(%23n)'/></svg>");
+}
+
+/* 远山缓慢视差漂移 */
+.garden-hill-far {
+  animation: gardenHills 26s ease-in-out infinite alternate;
+}
+
+.garden-hill-near {
+  animation: gardenHills 34s ease-in-out infinite alternate;
+}
+
+@keyframes gardenHills {
+  from {
+    transform: translateX(-9px);
+  }
+  to {
+    transform: translateX(11px);
+  }
+}
+
+/* 天空顶部柔光,增加层次 */
+.garden-skyglow {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background: radial-gradient(120% 85% at 50% 0%, var(--sky-glow) 0%, rgba(255, 255, 255, 0) 58%);
+}
+
+@keyframes gardenPetalFall {
+  0% {
+    transform: translate(0, -10px) rotate(0deg);
+    opacity: 0;
+  }
+  8% {
+    opacity: 0.55;
+  }
+  100% {
+    transform: translate(var(--gdx, -40px), 300px) rotate(200deg);
+    opacity: 0;
+  }
+}
+
+.garden-fx {
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: 60;
+  overflow: hidden;
+}
+
+.garden-pt {
+  position: absolute;
+  border-radius: 50%;
+  animation: gardenRise 1.15s cubic-bezier(0.2, 0.7, 0.4, 1) forwards;
+}
+
+@keyframes gardenRise {
+  0% {
+    transform: translate(0, 0) scale(1);
+    opacity: 0.95;
+  }
+  100% {
+    transform: translate(var(--gdx, 0px), var(--gdy, -110px)) scale(0.35);
+    opacity: 0;
+  }
+}
+
+.garden-page svg .sway-outer {
+  transform-origin: 150px 352px;
+  transform-box: view-box;
+}
+
+.garden-page svg .sway {
+  transform-origin: 150px 352px;
+  transform-box: view-box;
+  animation: gardenSway 5.5s ease-in-out infinite alternate;
+}
+
+.garden-page .plant-svg-wrap.plant-bounce {
+  animation: gardenBounce 0.95s ease;
+}
+
+@keyframes gardenSway {
+  from {
+    transform: rotate(-1.1deg);
+  }
+  to {
+    transform: rotate(1.1deg);
+  }
+}
+
+@keyframes gardenBounce {
+  0% {
+    transform: translateY(0);
+  }
+  30% {
+    transform: translateY(-13px) rotate(-2deg);
+  }
+  60% {
+    transform: translateY(0) rotate(1.5deg);
+  }
+  80% {
+    transform: translateY(-5px);
+  }
+  100% {
+    transform: translateY(0);
+  }
+}
+
+.garden-page svg .lantern {
+  animation: gardenFloat 4.2s ease-in-out infinite alternate;
+}
+
+@keyframes gardenFloat {
+  from {
+    transform: translateY(-3px);
+  }
+  to {
+    transform: translateY(5px);
+  }
+}
+
+.garden-page svg .bloom {
+  animation: gardenBloom 0.8s cubic-bezier(0.34, 1.56, 0.64, 1) backwards;
+}
+
+@keyframes gardenBloom {
+  from {
+    transform: scale(0);
+  }
+  to {
+    transform: scale(1);
+  }
+}
+
+.animate-scale-in {
+  animation: scaleIn 320ms cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+.no-scrollbar {
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+
+
+/* ============================================
+   静心之声页面
+   ============================================ */
+.sound-bottom {
+  background: rgba(252, 249, 246, 0.9);
+}
+
+.dark .sound-bottom {
+  background: rgba(26, 28, 24, 0.9);
+}
+
+/* 播放时头部扩散波纹 */
+.sound-ring {
+  position: absolute;
+  inset: -10px;
+  border-radius: 50%;
+  border: 1.5px solid rgb(var(--primary));
+  opacity: 0;
+  animation: soundRing 2.7s ease-out infinite;
+  pointer-events: none;
+}
+
+@keyframes soundRing {
+  0% {
+    transform: scale(0.9);
+    opacity: 0.5;
+  }
+  100% {
+    transform: scale(1.65);
+    opacity: 0;
+  }
+}
+
+.animate-sound-pulse {
+  animation: soundPulse 1.6s ease-in-out infinite;
+}
+
+@keyframes soundPulse {
+  0%,
+  100% {
+    transform: scale(1);
+  }
+  50% {
+    transform: scale(1.12);
+  }
+}
+
 /* 尊重减少动态偏好：关闭装饰性动画 */
 @media (prefers-reduced-motion: reduce) {
   *,
@@ -306,4 +703,13 @@
     transition-duration: 0.01ms !important;
     scroll-behavior: auto !important;
   }
+}
+
+/* 主题切换时的全局柔和过渡(ThemeContext 仅在切换瞬间挂 350ms,
+   平时不影响 hover 等局部过渡) */
+.theme-transition,
+.theme-transition *,
+.theme-transition *::before,
+.theme-transition *::after {
+  transition: background-color 0.3s ease, color 0.3s ease, border-color 0.3s ease, box-shadow 0.3s ease !important;
 }

@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react'
 import { Link } from 'react-router-dom'
 import { supabase } from '../lib/supabase'
-import { useDarkMode } from '../hooks/useDarkMode'
+import { useTheme } from '../context/ThemeContext'
 import { ALL_ENTRIES } from '../data/dictionary'
 import { parseMoodNote } from '../lib/moodNote'
 import { setupDailyReminder } from '../lib/notification'
@@ -28,7 +28,7 @@ const moodColors = {
 }
 
 export default function Me() {
-  const [isDark, toggleDark] = useDarkMode()
+  const { isDark, toggleDark } = useTheme()
   const [avatar, setAvatar] = useState(() => localStorage.getItem('liubai-avatar') || '🌿')
   const [showAvatarPicker, setShowAvatarPicker] = useState(false)
   const [showAbout, setShowAbout] = useState(false)
@@ -239,8 +239,8 @@ export default function Me() {
             <p className="text-[11px] text-outline-variant text-center mt-3">
               {reminderResult
                 ? reminderResult.ok
-                  ? '✅ 已设置系统级每日提醒（手机通知）'
-                  : `⚠️ ${reminderResult.reason || '设置失败'}`
+                  ? '已设置系统级每日提醒(手机通知)'
+                  : `${reminderResult.reason || '设置失败'}`
                 : '设置后会在手机通知栏提醒你打卡'}
             </p>
           </div>

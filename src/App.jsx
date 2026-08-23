@@ -1,7 +1,7 @@
 import { lazy, Suspense, useEffect, useState } from 'react'
 import { HashRouter, Routes, Route, Navigate } from 'react-router-dom'
 import { supabase } from './lib/supabase'
-import { useDarkMode } from './hooks/useDarkMode'
+import { ThemeProvider } from './context/ThemeContext'
 
 // 路由级懒加载：首屏只加载当前页面代码，其余按需下载
 const Onboarding = lazy(() => import('./pages/Onboarding'))
@@ -13,12 +13,21 @@ const DailyJournal = lazy(() => import('./pages/DailyJournal'))
 const Me = lazy(() => import('./pages/Me'))
 const Breathing = lazy(() => import('./pages/Breathing'))
 const WeeklyReport = lazy(() => import('./pages/WeeklyReport'))
+const MoodGarden = lazy(() => import('./pages/MoodGarden'))
+const Sound = lazy(() => import('./pages/Sound'))
 
 export default function App() {
+  return (
+    <ThemeProvider>
+      <AppInner />
+    </ThemeProvider>
+  )
+}
+
+function AppInner() {
   const [session, setSession] = useState(null)
   const [loading, setLoading] = useState(true)
   const [showOnboarding, setShowOnboarding] = useState(false)
-  useDarkMode() // 初始化深色模式
 
   useEffect(() => {
     let mounted = true
@@ -85,6 +94,8 @@ export default function App() {
               <Route path="/me" element={<Me />} />
               <Route path="/breathing" element={<Breathing />} />
               <Route path="/weekly" element={<WeeklyReport />} />
+              <Route path="/garden" element={<MoodGarden />} />
+              <Route path="/sound" element={<Sound />} />
               <Route path="*" element={<Navigate to="/" replace />} />
             </>
           )}

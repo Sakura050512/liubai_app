@@ -29,11 +29,13 @@ MAPPING = {'bookmark_border': 'bookmark', 'chat_bubble_outline': 'chat_bubble', 
 
 def collect_candidates():
     cands = set()
-    for f in glob.glob('src/**/*.jsx', recursive=True):
-        text = open(f, encoding='utf-8').read()
-        cands |= set(re.findall(r'>\s*([a-z_][a-z0-9_]*)\s*<', text))
-        cands |= set(re.findall(r"icon:\s*'([a-z_][a-z0-9_]*)'", text))
-        cands |= set(re.findall(r"'\s*([a-z_][a-z0-9_]*)\s*'", text))
+    # 同时扫描 .jsx 组件与 .js 库(图标名可能定义在 lib 数据文件里)
+    for pattern in ('src/**/*.jsx', 'src/**/*.js'):
+        for f in glob.glob(pattern, recursive=True):
+            text = open(f, encoding='utf-8').read()
+            cands |= set(re.findall(r'>\s*([a-z_][a-z0-9_]*)\s*<', text))
+            cands |= set(re.findall(r"icon:\s*'([a-z_][a-z0-9_]*)'", text))
+            cands |= set(re.findall(r"'\s*([a-z_][a-z0-9_]*)\s*'", text))
     return cands
 
 

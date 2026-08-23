@@ -1,0 +1,17 @@
+{
+  "name": "留白 · 心灵的数字庇护所",
+  "short_name": "留白",
+  "description": "给心灵留一点空白——情绪打卡、日记、呼吸练习、情绪花园、静心之声。",
+  "lang": "zh-CN",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#fcf9f6",
+  "theme_color": "#48654a",
+  "icons": [
+    { "src": "icons/icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+    { "src": "icons/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
+    { "src": "icons/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+  ]
+}
