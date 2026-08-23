@@ -10,6 +10,7 @@ import MoodTrendChart from '../components/MoodTrendChart'
 import EmptyState from '../components/EmptyState'
 import TopBar from '../components/TopBar'
 import BottomNav from '../components/BottomNav'
+import ThemeToggleButton from '../components/ThemeToggleButton'
 
 const TABS = ['概览', '情绪', '心里话', '收藏']
 
@@ -398,11 +399,7 @@ export default function Me() {
             <span className="material-symbols-outlined">logout</span>
           </button>
         }
-        right={
-          <div className="w-8 h-8 rounded-full bg-primary-container/50 flex items-center justify-center text-lg">
-            {avatar}
-          </div>
-        }
+        right={<ThemeToggleButton />}
       />
 
       <main className="max-w-screen-md mx-auto px-5 pb-32" style={{ paddingTop: 'calc(80px + env(safe-area-inset-top))' }}>
