@@ -33,6 +33,7 @@ export default function Me() {
   const [avatar, setAvatar] = useState(() => localStorage.getItem('liubai-avatar') || '🌿')
   const [showAvatarPicker, setShowAvatarPicker] = useState(false)
   const [showAbout, setShowAbout] = useState(false)
+  const [showSignOutConfirm, setShowSignOutConfirm] = useState(false)
   const [exporting, setExporting] = useState(false)
   const [showReminder, setShowReminder] = useState(false)
   const [showPrivacy, setShowPrivacy] = useState(false)
@@ -120,6 +121,7 @@ export default function Me() {
   }
 
   const handleSignOut = async () => {
+    setShowSignOutConfirm(false)
     await supabase.auth.signOut()
   }
 
@@ -286,6 +288,44 @@ export default function Me() {
         </div>
       )}
 
+      {/* 退出登录确认弹窗 */}
+      {showSignOutConfirm && (
+        <div
+          className="fixed inset-0 z-[80] flex items-center justify-center p-6"
+          style={{ background: 'rgba(26,28,24,.5)', backdropFilter: 'blur(4px)', WebkitBackdropFilter: 'blur(4px)' }}
+          onClick={(e) => e.target === e.currentTarget && setShowSignOutConfirm(false)}
+          role="dialog"
+          aria-modal="true"
+          aria-label="确认退出登录"
+        >
+          <div
+            className="w-full max-w-xs rounded-3xl bg-surface-container-lowest border border-outline-variant/10 p-6 text-center animate-scale-in"
+            style={{ boxShadow: '0 24px 70px rgba(0,0,0,.22)' }}
+            onClick={e => e.stopPropagation()}
+          >
+            <span className="material-symbols-outlined text-3xl text-outline mb-2">logout</span>
+            <h3 className="font-display text-lg font-medium text-on-surface mb-2">退出登录?</h3>
+            <p className="text-sm text-on-surface-variant font-light leading-relaxed">
+              退出后需要重新输入邮箱和密码登录,你的记录仍会安全保存在云端。
+            </p>
+            <div className="flex gap-2 mt-5">
+              <button
+                onClick={() => setShowSignOutConfirm(false)}
+                className="flex-1 py-2.5 rounded-full text-sm font-light text-on-surface-variant bg-surface-container-low hover:bg-surface-container transition-all duration-300 active:scale-[0.98]"
+              >
+                再想想
+              </button>
+              <button
+                onClick={handleSignOut}
+                className="flex-1 py-2.5 rounded-full text-sm font-medium text-on-error bg-error transition-all duration-300 active:scale-[0.98]"
+              >
+                退出登录
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* 隐私说明弹窗 */}
       {showPrivacy && (
         <div
@@ -351,7 +391,7 @@ export default function Me() {
         title="留白"
         left={
           <button
-            onClick={handleSignOut}
+            onClick={() => setShowSignOutConfirm(true)}
             aria-label="退出登录"
             className="text-outline hover:text-primary transition-colors duration-300 p-1 -ml-1"
           >
