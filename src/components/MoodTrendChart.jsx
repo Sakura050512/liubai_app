@@ -5,6 +5,7 @@
 // 颜色一律用 currentColor + Tailwind 类（不要用 fill="var(--x)"，
 // 部分 WebView 中 SVG 属性里的 CSS 变量解析会失效，导致渲染成默认黑色）。
 import { localDayKey } from '../lib/date'
+import { MOOD_ICONS } from '../lib/garden'
 
 // 情绪在纵轴上的顺序（自上而下）
 const MOOD_ORDER = ['平静', '愉悦', '低落', '难过', '焦虑', '不安', '烦躁', '疲惫']
@@ -102,12 +103,18 @@ export default function MoodTrendChart({ records = [], days = 14 }) {
         strokeOpacity="0.6"
       />
 
-      {/* 数据点 + emoji */}
+      {/* 数据点 + 情绪图标(SVG text 用图标字体渲染,替代 emoji) */}
       {points.map((p, i) => (
         <g key={i}>
           <circle cx={p.x} cy={p.y} r="3.5" className="text-primary" fill="currentColor" />
-          <text x={p.x} y={p.y - 9} textAnchor="middle" fontSize="13">
-            {p.rec.emoji}
+          <text
+            x={p.x} y={p.y - 9} textAnchor="middle"
+            fontSize="15"
+            fontFamily="'Material Symbols Outlined', sans-serif"
+            className="text-primary"
+            fill="currentColor"
+          >
+            {MOOD_ICONS[p.rec.mood] || 'sentiment_satisfied'}
           </text>
         </g>
       ))}
