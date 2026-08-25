@@ -7,6 +7,7 @@ import { localDayKey, localDateLabel, calcStreak } from '../lib/date'
 import { parseMoodNote } from '../lib/moodNote'
 import {
   MOOD_COLORS,
+  MOOD_ICONS,
   LEVELS,
   levelIndex,
   levelTip,
@@ -20,14 +21,14 @@ const WEEKDAYS = ['日', '一', '二', '三', '四', '五', '六']
 
 // 8 种心情(日历图例展示用;打卡统一在首页)
 const MOODS = [
-  { emoji: '😌', label: '平静' },
-  { emoji: '😊', label: '愉悦' },
-  { emoji: '😔', label: '低落' },
-  { emoji: '😢', label: '难过' },
-  { emoji: '😰', label: '焦虑' },
-  { emoji: '😳', label: '不安' },
-  { emoji: '😤', label: '烦躁' },
-  { emoji: '😴', label: '疲惫' },
+  { icon: 'sentiment_calm', label: '平静' },
+  { icon: 'sentiment_very_satisfied', label: '愉悦' },
+  { icon: 'sentiment_dissatisfied', label: '低落' },
+  { icon: 'sentiment_sad', label: '难过' },
+  { icon: 'sentiment_stressed', label: '焦虑' },
+  { icon: 'sentiment_worried', label: '不安' },
+  { icon: 'sentiment_frustrated', label: '烦躁' },
+  { icon: 'bedtime', label: '疲惫' },
 ]
 
 export default function MoodGarden() {
@@ -244,7 +245,7 @@ export default function MoodGarden() {
     setTip({
       x: Math.min(window.innerWidth - 240, Math.max(8, rect.left + rect.width / 2 - 110)),
       y: Math.max(8, rect.top - 46),
-      html: `<b>${record.emoji} ${record.mood}</b><br>${note ? escapeHtml(note) : '这一天,安静地记录了下来。'}`,
+      html: `<b>${MOOD_ICONS[record.mood] ? `<span class="material-symbols-outlined" style="font-size:15px;vertical-align:-2px">${MOOD_ICONS[record.mood]}</span>` : ''} ${record.mood}</b><br>${note ? escapeHtml(note) : '这一天,安静地记录了下来。'}`,
     })
   }
 
@@ -391,7 +392,9 @@ export default function MoodGarden() {
             <div className="relative z-10 px-6 pb-5 text-center">
               <p className="font-headline text-sm font-medium text-on-surface">{LEVEL_STATUS[level]}</p>
               <p className="text-xs text-on-surface-variant mt-1.5 font-light">
-                {todayRecord ? `今天已记录 · ${todayRecord.emoji} ${todayRecord.mood}` : '今天还没浇水,给花园一点时间吧'}
+                {todayRecord
+                  ? `今天已记录 · ${todayRecord.mood}`
+                  : '今天还没浇水,给花园一点时间吧'}
                 {streak > 0 ? ` · 连续 ${streak} 天` : ''}
               </p>
               <div className="mt-3.5">
@@ -472,7 +475,9 @@ export default function MoodGarden() {
                       boxShadow: cell.key === todayKey ? '0 0 0 2px rgb(var(--primary))' : undefined,
                     }}
                   >
-                    <span className="text-[13px] leading-none">{cell.record ? cell.record.emoji : ''}</span>
+                    <span className="material-symbols-outlined text-[15px] leading-none text-primary/80">
+                      {cell.record ? MOOD_ICONS[cell.record.mood] || 'sentiment_satisfied' : ''}
+                    </span>
                     <span
                       className="absolute top-0.5 left-1 text-[8px] leading-none"
                       style={{ color: 'rgb(var(--on-surface))', opacity: 0.38 }}
@@ -492,8 +497,8 @@ export default function MoodGarden() {
                 return (
                   <span key={m.label} className="flex items-center gap-1.5 text-[10px] text-outline">
                     <i className="w-2.5 h-2.5 rounded-full flex-shrink-0" style={{ background: col.bg, border: `1px solid ${col.bd}` }} />
+                    <span className="material-symbols-outlined text-[13px]">{m.icon}</span>
                     <span>
-                      {m.emoji}
                       {m.label}
                     </span>
                   </span>
@@ -660,7 +665,7 @@ export default function MoodGarden() {
             </p>
             <p className="text-[11px] text-outline mb-4">每一次诚实记录,都是给花园的养分。</p>
             {g.days.length === 0 ? (
-              <p className="text-center py-6 text-sm text-outline">花园还空着,记录第一条心情吧 🌱</p>
+              <p className="text-center py-6 text-sm text-outline">花园还空着,记录第一条心情吧</p>
             ) : (
               [...g.days]
                 .reverse()
@@ -669,7 +674,7 @@ export default function MoodGarden() {
                   const { note } = parseMoodNote(r.note)
                   return (
                     <div key={r.id || r.created_at} className="flex gap-3 rounded-2xl bg-surface-container-low px-3 py-2.5 mb-2">
-                      <span className="text-xl leading-none mt-0.5">{r.emoji}</span>
+                      <span className="material-symbols-outlined text-xl leading-none mt-0.5 text-primary/80">{MOOD_ICONS[r.mood] || 'sentiment_satisfied'}</span>
                       <div className="min-w-0">
                         <p className="text-[11px] text-outline">
                           {localDateLabel(new Date(r.created_at))} · {r.mood}

@@ -15,6 +15,18 @@ export const MOOD_CATEGORIES = {
   疲惫: 'tired',
 }
 
+// 8 种心情的 Material Symbols 图标(显示层统一用图标,不再用 emoji)
+export const MOOD_ICONS = {
+  平静: 'sentiment_calm',
+  愉悦: 'sentiment_very_satisfied',
+  低落: 'sentiment_dissatisfied',
+  难过: 'sentiment_sad',
+  焦虑: 'sentiment_stressed',
+  不安: 'sentiment_worried',
+  烦躁: 'sentiment_frustrated',
+  疲惫: 'bedtime',
+}
+
 // 每种心情自己的颜色(日历格子 + 图例共用)
 // 刻意拉开色相与明度:天蓝/藏青/紫/洋红彼此可分辨
 export const MOOD_COLORS = {

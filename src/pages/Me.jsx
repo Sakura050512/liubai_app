@@ -4,6 +4,7 @@ import { supabase } from '../lib/supabase'
 import { useTheme } from '../context/ThemeContext'
 import { ALL_ENTRIES } from '../data/dictionary'
 import { parseMoodNote } from '../lib/moodNote'
+import { MOOD_ICONS } from '../lib/garden'
 import { localDayKey } from '../lib/date'
 import { setupDailyReminder } from '../lib/notification'
 import MoodTrendChart from '../components/MoodTrendChart'
@@ -660,7 +661,7 @@ export default function Me() {
                     const { intensity, note } = parseMoodNote(m.note)
                     return (
                       <div key={i} className="flex items-start gap-3 bg-surface-container-low px-4 py-3 rounded-xl">
-                        <span className="text-xl flex-shrink-0 mt-0.5">{m.emoji}</span>
+                        <span className="material-symbols-outlined text-xl flex-shrink-0 mt-0.5 text-primary/80">{MOOD_ICONS[m.mood] || 'sentiment_satisfied'}</span>
                         <div className="flex-1 min-w-0">
                           <div className="flex items-center gap-2 flex-wrap">
                             <p className="text-on-surface text-sm font-light">{m.mood}</p>

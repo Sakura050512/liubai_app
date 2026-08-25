@@ -4,21 +4,21 @@ import { supabase } from '../lib/supabase'
 import { todayRange, localDateLabel, calcStreak } from '../lib/date'
 import { ALL_ENTRIES, todayEntry as getTodayEntry, todayEntryIndex as getTodayEntryIndex } from '../data/dictionary'
 import { INTENSITIES, buildMoodNote, parseMoodNote } from '../lib/moodNote'
-import { MOOD_CATEGORIES, pickCard } from '../lib/garden'
+import { MOOD_CATEGORIES, MOOD_ICONS, pickCard } from '../lib/garden'
 import { getSolarTerm } from '../lib/solar'
 import TopBar from '../components/TopBar'
 import BottomNav from '../components/BottomNav'
 import ThemeToggleButton from '../components/ThemeToggleButton'
 
 const moods = [
-  { emoji: '😌', label: '平静' },
-  { emoji: '😊', label: '愉悦' },
-  { emoji: '😔', label: '低落' },
-  { emoji: '😢', label: '难过' },
-  { emoji: '😰', label: '焦虑' },
-  { emoji: '😳', label: '不安' },
-  { emoji: '😤', label: '烦躁' },
-  { emoji: '😴', label: '疲惫' },
+  { icon: 'sentiment_calm', label: '平静' },
+  { icon: 'sentiment_very_satisfied', label: '愉悦' },
+  { icon: 'sentiment_dissatisfied', label: '低落' },
+  { icon: 'sentiment_sad', label: '难过' },
+  { icon: 'sentiment_stressed', label: '焦虑' },
+  { icon: 'sentiment_worried', label: '不安' },
+  { icon: 'sentiment_frustrated', label: '烦躁' },
+  { icon: 'bedtime', label: '疲惫' },
 ]
 
 export default function Home() {
@@ -199,7 +199,8 @@ export default function Home() {
 
     // 强度标记并入 note，便于周报/统计解析；无备注时仅存强度
     const note = buildMoodNote(INTENSITIES[intensityIdx].label, noteInput)
-    const payload = { mood: moods[i].label, emoji: moods[i].emoji, note }
+    // emoji 字段保留兼容历史数据,新数据存图标名(显示层已统一用 MOOD_ICONS)
+    const payload = { mood: moods[i].label, emoji: moods[i].icon, note }
 
     const { error } = todayRecord
       ? await supabase.from('mood_records').update(payload).eq('id', todayRecord.id)
@@ -221,7 +222,7 @@ export default function Home() {
     // 打卡成功 → 弹出激励卡片(文案按心情分类,复用花园文案池)
     const m = moods[i]
     const category = MOOD_CATEGORIES[m.label] || 'calm'
-    setMoodCard({ emoji: m.emoji, mood: m.label, message: pickCard(category) })
+    setMoodCard({ icon: m.icon, mood: m.label, message: pickCard(category) })
   }
 
   return (
@@ -331,7 +332,7 @@ export default function Home() {
                           : 'bg-surface-container-low hover:bg-surface-container'
                       }`}
                     >
-                      <span className="text-xl leading-none">{m.emoji}</span>
+                      <span className="material-symbols-outlined text-[22px] leading-none text-primary/90">{m.icon}</span>
                       <span className="text-[10px] text-on-surface-variant tracking-wide">{m.label}</span>
                     </button>
                   ))}
@@ -396,7 +397,7 @@ export default function Home() {
               /* 已打卡状态 */
               <div className="flex items-center gap-3 py-1 animate-fade-in">
                 <div className="w-10 h-10 rounded-full bg-primary-container flex items-center justify-center flex-shrink-0">
-                  <span className="text-xl">{todayRecord ? todayRecord.emoji : '😌'}</span>
+                  <span className="material-symbols-outlined text-xl text-primary/90">{todayRecord ? MOOD_ICONS[todayRecord.mood] || 'sentiment_satisfied' : 'sentiment_calm'}</span>
                 </div>
                 <div className="flex-1 min-w-0 space-y-1">
                   <p className="text-sm text-on-surface font-light leading-snug">
@@ -522,8 +523,8 @@ export default function Home() {
                 className="absolute inset-0 rounded-full bg-primary-container/60 blur-xl"
                 style={{ transform: 'scale(1.6)' }}
               />
-              <span className="relative text-5xl leading-none animate-float" style={{ animationDuration: '2.6s' }}>
-                {moodCard.emoji}
+              <span className="relative material-symbols-outlined text-5xl leading-none text-primary animate-float" style={{ animationDuration: '2.6s', fontVariationSettings: "'FILL' 0, 'wght' 300" }}>
+                {moodCard.icon}
               </span>
             </div>
             <p className="text-[11px] tracking-[0.2em] uppercase text-primary mb-1">已记录</p>
