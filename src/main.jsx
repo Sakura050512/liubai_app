@@ -27,6 +27,17 @@ if (import.meta.env.PROD && !Capacitor.isNativePlatform() && 'serviceWorker' in 
   })
 }
 
+// 主题类在首帧前就确定下来:避免深色模式下先按浅色变量绘制一帧、
+// 再由 useEffect 补 .dark 导致的整页不重算(深色失效)。
+{
+  const saved = localStorage.getItem('liubai-theme')
+  const prefersDark =
+    saved === 'dark' || saved === 'light'
+      ? saved === 'dark'
+      : window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches
+  document.documentElement.classList.toggle('dark', prefersDark)
+}
+
 createRoot(document.getElementById('root')).render(
   <StrictMode>
     <App />

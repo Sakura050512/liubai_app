@@ -8,6 +8,19 @@
   <link rel="manifest" href="/manifest.webmanifest" />
   <meta name="theme-color" content="#48654a" />
   <link rel="icon" type="image/png" href="/icons/icon-192.png" />
+  <script>
+    // 首屏防闪白:在样式与 React 挂载之前先确定深浅色,直接给 <html> 加上 dark 类。
+    // 只做类名切换,真正的状态同步仍由 ThemeContext 负责。
+    (function () {
+      try {
+        var saved = localStorage.getItem('liubai-theme');
+        var dark = saved === 'dark' || saved === 'light'
+          ? saved === 'dark'
+          : window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
+        if (dark) document.documentElement.classList.add('dark');
+      } catch (e) {}
+    })();
+  </script>
 </head>
 
 <body>

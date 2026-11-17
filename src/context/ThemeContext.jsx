@@ -1,4 +1,4 @@
-import { createContext, useContext, useEffect, useState, useCallback } from 'react'
+import { createContext, useContext, useEffect, useRef, useState, useCallback } from 'react'
 import { StatusBar, Style } from '@capacitor/status-bar'
 import { Capacitor } from '@capacitor/core'
 
@@ -26,24 +26,28 @@ export function ThemeProvider({ children }) {
     return systemPrefersDark()
   })
 
+  // 首次挂载时 <html> 上的 dark 类已由 index.html / main.jsx 设好,
+  // 这里只负责后续切换:同步类名 + 挂过渡类 + 原生状态栏。
+  const mounted = useRef(false)
+
   useEffect(() => {
     const root = document.documentElement
-    // 切换瞬间挂一个临时过渡类,让背景/文字/边框颜色柔和过渡(350ms 后移除)
+
+    if (!mounted.current) {
+      // 首帧:只同步类名,不加过渡(避免首屏闪一下)
+      mounted.current = true
+      root.classList.toggle('dark', isDark)
+      return
+    }
+
+    // 切换瞬间挂一个临时过渡类,让背景/文字/边框颜色柔和过渡(380ms 后移除)
     root.classList.add('theme-transition')
     const t = setTimeout(() => root.classList.remove('theme-transition'), 380)
 
-    if (isDark) {
-      root.classList.add('dark')
-      if (Capacitor.isNativePlatform()) {
-        StatusBar.setBackgroundColor({ color: '#1a1c18' })
-        StatusBar.setStyle({ style: Style.Dark })
-      }
-    } else {
-      root.classList.remove('dark')
-      if (Capacitor.isNativePlatform()) {
-        StatusBar.setBackgroundColor({ color: '#fcf9f6' })
-        StatusBar.setStyle({ style: Style.Light })
-      }
+    root.classList.toggle('dark', isDark)
+    if (Capacitor.isNativePlatform()) {
+      StatusBar.setBackgroundColor({ color: isDark ? '#1a1c18' : '#fcf9f6' })
+      StatusBar.setStyle({ style: isDark ? Style.Dark : Style.Light })
     }
     return () => clearTimeout(t)
   }, [isDark])
