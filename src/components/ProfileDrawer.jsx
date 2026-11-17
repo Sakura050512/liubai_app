@@ -226,7 +226,7 @@ export default function ProfileDrawer({ open, onClose }) {
           </div>
         </div>
 
-        {/* 底部：完整个人中心 */}
+        {/* 底部：前往个人中心 */}
         <div className="px-6 pt-3 pb-6 border-t border-outline-variant/10">
           <Link
             to="/me"
@@ -234,7 +234,7 @@ export default function ProfileDrawer({ open, onClose }) {
             className="flex items-center justify-center gap-2 w-full bg-primary-container/40 text-primary py-3 rounded-full text-sm font-light transition-all active:scale-[0.98] hover:bg-primary-container/60"
           >
             <span className="material-symbols-outlined text-base">person</span>
-            完整的个人中心
+            前往个人中心
           </Link>
         </div>
       </aside>

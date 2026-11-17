@@ -645,6 +645,26 @@
   display: none;
 }
 
+/* 全局隐藏滚动条：移动端应用不需要可见的滚动条占位。
+   保留滚动能力，只在视觉上去掉轨道与滑块（含 iOS Safari / Android WebView / Chrome）。 */
+html,
+body {
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+
+html::-webkit-scrollbar,
+body::-webkit-scrollbar,
+*::-webkit-scrollbar {
+  width: 0;
+  height: 0;
+  display: none;
+}
+
+* {
+  -webkit-overflow-scrolling: touch;
+}
+
 
 /* ============================================
    静心之声页面
