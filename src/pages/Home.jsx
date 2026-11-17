@@ -2,13 +2,14 @@ import { useState, useEffect, useMemo } from 'react'
 import { Link } from 'react-router-dom'
 import { supabase } from '../lib/supabase'
 import { todayRange, localDateLabel, calcStreak } from '../lib/date'
-import { ALL_ENTRIES, todayEntry as getTodayEntry, todayEntryIndex as getTodayEntryIndex } from '../data/dictionary'
+import { todayEntry as getTodayEntry, todayEntryIndex as getTodayEntryIndex } from '../data/dictionary'
 import { INTENSITIES, buildMoodNote, parseMoodNote } from '../lib/moodNote'
 import { MOOD_CATEGORIES, MOOD_ICONS, pickCard } from '../lib/garden'
 import { getSolarTerm } from '../lib/solar'
 import TopBar from '../components/TopBar'
 import BottomNav from '../components/BottomNav'
 import ThemeToggleButton from '../components/ThemeToggleButton'
+import ProfileDrawer from '../components/ProfileDrawer'
 
 const moods = [
   { icon: 'sentiment_calm', label: '平静' },
@@ -39,69 +40,13 @@ export default function Home() {
   const [showReminderBanner, setShowReminderBanner] = useState(false)
   // 打卡成功后的激励卡片
   const [moodCard, setMoodCard] = useState(null)
+  // 顶栏 ☰ 打开的个人中心抽屉
+  const [drawerOpen, setDrawerOpen] = useState(false)
 
   const dateStr = localDateLabel()
   const solarTerm = useMemo(() => getSolarTerm(), [])
   const todayEntry = getTodayEntry()
   const todayEntryIdx = getTodayEntryIndex()
-
-  const navCards = [
-    {
-      to: '/dictionary',
-      icon: 'menu_book',
-      iconBg: 'bg-secondary-container/40',
-      iconColor: 'text-secondary',
-      title: '心理词典',
-      desc: '解读内心的微妙信号，探索情绪背后的科学逻辑',
-      tag: `${ALL_ENTRIES.length} 个词条`,
-      tagColor: 'text-secondary',
-      tagBg: 'bg-secondary-container/40',
-    },
-    {
-      to: '/breathing',
-      icon: 'air',
-      iconBg: 'bg-tertiary-container/40',
-      iconColor: 'text-tertiary',
-      title: '呼吸练习',
-      desc: '4-4-6-2 呼吸法，随时平复情绪',
-      tag: '冥想',
-      tagColor: 'text-tertiary',
-      tagBg: 'bg-tertiary-container/40',
-    },
-    {
-      to: '/weekly',
-      icon: 'bar_chart',
-      iconBg: 'bg-surface-container',
-      iconColor: 'text-outline',
-      title: '每周报告',
-      desc: '查看本周情绪趋势和 AI 分析',
-      tag: '数据',
-      tagColor: 'text-outline',
-      tagBg: 'bg-surface-container',
-    },
-    {
-      to: '/garden',
-      icon: 'auto_awesome',
-      iconBg: 'bg-tertiary-container/40',
-      iconColor: 'text-tertiary',
-      title: '情绪花园',
-      desc: '每一次记录都是养分,看你的花园悄悄生长',
-      tag: '养成',
-      tagColor: 'text-tertiary',
-      tagBg: 'bg-tertiary-container/40',
-    },
-    {
-      to: '/sound',
-      icon: 'waves',
-      iconBg: 'bg-primary-container/40',
-      iconColor: 'text-primary',
-      title: '静心之声',
-      desc: '白噪音、雨声、海浪…让心安静下来',
-      tag: '声音',
-      tagColor: 'text-primary',
-      tagBg: 'bg-primary-container/40',
-    },
-  ]
 
   useEffect(() => {
     const checkTodayMood = async () => {
@@ -235,7 +180,18 @@ export default function Home() {
         paddingBottom: 'calc(80px + env(safe-area-inset-bottom))',
       }}
     >
-      <TopBar right={<ThemeToggleButton />} />
+      <TopBar
+        left={
+          <button
+            onClick={() => setDrawerOpen(true)}
+            aria-label="打开个人中心"
+            className="material-symbols-outlined text-primary cursor-pointer hover:opacity-70 transition-opacity duration-300"
+          >
+            menu
+          </button>
+        }
+        right={<ThemeToggleButton />}
+      />
 
       <main
         className="mx-auto w-full"
@@ -466,42 +422,34 @@ export default function Home() {
             </Link>
           </section>
 
-          {/* 功能入口 */}
+          {/* 探索入口 —— 把 5 个工具收到「探索」页，首页只留这一个轻入口 */}
           <section className="w-full animate-slide-up" style={{ animationDelay: '180ms' }}>
-            <div className="flex flex-col gap-3">
-              {navCards.map((card) => (
-                <Link
-                  key={card.to}
-                  to={card.to}
-                  className="group flex items-center gap-4 bg-surface-container-lowest rounded-2xl px-4 py-4 w-full transition-all duration-300 active:scale-[0.99] hover:bg-surface-container-low/70 border border-outline-variant/10"
-                  style={{ boxShadow: '0 2px 16px rgba(49,51,47,0.04)' }}
-                >
-                  <div className={`flex-shrink-0 w-10 h-10 rounded-xl ${card.iconBg} flex items-center justify-center transition-transform duration-300 group-hover:scale-110`}>
-                    <span className={`material-symbols-outlined ${card.iconColor} text-xl`}>
-                      {card.icon}
-                    </span>
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-2 mb-0.5 flex-wrap">
-                      <h3 className="font-headline text-sm font-medium text-on-surface">{card.title}</h3>
-                      <span className={`text-[9px] tracking-widest uppercase font-medium px-1.5 py-0.5 rounded-full flex-shrink-0 ${card.tagBg} ${card.tagColor}`}>
-                        {card.tag}
-                      </span>
-                    </div>
-                    <p className="text-on-surface-variant text-xs leading-relaxed line-clamp-1">{card.desc}</p>
-                  </div>
-                  <span className="material-symbols-outlined text-outline-variant text-base flex-shrink-0 group-hover:text-primary group-hover:translate-x-0.5 transition-all duration-300">
-                    chevron_right
-                  </span>
-                </Link>
-              ))}
-            </div>
+            <Link
+              to="/explore"
+              className="group flex items-center gap-3 bg-surface-container-lowest rounded-2xl px-4 py-3.5 w-full transition-all duration-300 active:scale-[0.99] hover:bg-surface-container-low/70 border border-outline-variant/10"
+              style={{ boxShadow: '0 2px 16px rgba(49,51,47,0.04)' }}
+            >
+              <div className="flex-shrink-0 w-9 h-9 rounded-xl bg-primary-container/40 flex items-center justify-center transition-transform duration-300 group-hover:scale-110">
+                <span className="material-symbols-outlined text-primary text-lg">auto_awesome</span>
+              </div>
+              <div className="flex-1 min-w-0">
+                <h3 className="font-headline text-sm font-medium text-on-surface mb-0.5">探索更多</h3>
+                <p className="text-on-surface-variant/60 text-xs leading-relaxed line-clamp-1">
+                  呼吸练习 · 静心之声 · 情绪花园 · 每周报告 · 心理词典
+                </p>
+              </div>
+              <span className="material-symbols-outlined text-outline-variant text-base flex-shrink-0 group-hover:text-primary group-hover:translate-x-0.5 transition-all duration-300">
+                chevron_right
+              </span>
+            </Link>
           </section>
 
         </div>
       </main>
 
       <BottomNav />
+
+      <ProfileDrawer open={drawerOpen} onClose={() => setDrawerOpen(false)} />
 
       {/* 打卡成功激励卡片 */}
       {moodCard && (

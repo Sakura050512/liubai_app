@@ -15,6 +15,7 @@ const Breathing = lazy(() => import('./pages/Breathing'))
 const WeeklyReport = lazy(() => import('./pages/WeeklyReport'))
 const MoodGarden = lazy(() => import('./pages/MoodGarden'))
 const Sound = lazy(() => import('./pages/Sound'))
+const Explore = lazy(() => import('./pages/Explore'))
 
 export default function App() {
   return (
@@ -88,6 +89,7 @@ function AppInner() {
           ) : (
             <>
               <Route path="/" element={<Home />} />
+              <Route path="/explore" element={<Explore />} />
               <Route path="/dictionary" element={<MindDictionary />} />
               <Route path="/talk" element={<Talk />} />
               <Route path="/journal" element={<DailyJournal />} />
