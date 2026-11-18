@@ -1,5 +1,7 @@
-import { lazy, Suspense, useEffect, useState } from 'react'
-import { HashRouter, Routes, Route, Navigate } from 'react-router-dom'
+import { lazy, Suspense, useEffect, useState, useRef } from 'react'
+import { HashRouter, Routes, Route, Navigate, useNavigate } from 'react-router-dom'
+import { App as CapacitorApp } from '@capacitor/app'
+import { Capacitor } from '@capacitor/core'
 import { supabase } from './lib/supabase'
 import { ThemeProvider } from './context/ThemeContext'
 
@@ -25,10 +27,51 @@ export default function App() {
   )
 }
 
+// 栈底返回提示（不依赖路由，onboarding/加载态也能用）
+function showExitToast() {
+  let el = document.getElementById('liubai-exit-toast')
+  if (!el) {
+    el = document.createElement('div')
+    el.id = 'liubai-exit-toast'
+    el.style.cssText = 'position:fixed;left:50%;bottom:96px;transform:translateX(-50%);z-index:9999;padding:10px 20px;border-radius:999px;background:rgba(38,41,35,.92);color:#fff;font-size:14px;letter-spacing:.05em;pointer-events:none;transition:opacity .25s;white-space:nowrap'
+    document.body.appendChild(el)
+  }
+  el.textContent = '再按一次退出'
+  el.style.opacity = '1'
+  clearTimeout(el._t)
+  el._t = setTimeout(() => { el.style.opacity = '0' }, 1600)
+}
+
+// 栈底返回：2 秒内连按两次才退出，避免误触
+function doubleTapExit(stateRef) {
+  const now = Date.now()
+  if (now - stateRef.current.lastBack < 2000) {
+    CapacitorApp.exitApp()
+  } else {
+    stateRef.current.lastBack = now
+    showExitToast()
+  }
+}
+
 function AppInner() {
   const [session, setSession] = useState(null)
   const [loading, setLoading] = useState(true)
   const [showOnboarding, setShowOnboarding] = useState(false)
+  const backStateRef = useRef({ lastBack: 0, goBack: null })
+
+  // Android 返回键/侧滑手势：交给 JS 决定回退还是退出
+  useEffect(() => {
+    if (!Capacitor.isNativePlatform()) return
+    let handle = null
+    let alive = true
+    CapacitorApp.addListener('backButton', () => {
+      if (!alive) return
+      // 路由内守卫提供精确回退；onboarding/加载态用它自己的兜底（双击退出）
+      if (backStateRef.current.goBack) backStateRef.current.goBack()
+      else doubleTapExit(backStateRef)
+    }).then(h => { if (alive) handle = h })
+    return () => { alive = false; handle?.remove?.() }
+  }, [])
 
   useEffect(() => {
     let mounted = true
@@ -78,6 +121,7 @@ function AppInner() {
 
   return (
     <HashRouter>
+      <BackGuard backStateRef={backStateRef} />
       <div className="relative w-full bg-surface" style={{ height: '100dvh', overflowX: 'hidden' }}>
         <Suspense fallback={<Splash />}>
           <Routes>
@@ -106,6 +150,28 @@ function AppInner() {
       </div>
     </HashRouter>
   )
+}
+
+// 路由内守卫：登记"如何回退"给 backButton 监听器。
+// 用 history.state.idx（react-router 的索引）判断能否回退：idx>0 说明栈里有上一级。
+function BackGuard({ backStateRef }) {
+  const navigate = useNavigate()
+
+  const goBack = () => {
+    const idx = window.history.state?.idx ?? 0
+    if (idx > 0) {
+      navigate(-1)
+    } else {
+      doubleTapExit(backStateRef)
+    }
+  }
+
+  useEffect(() => {
+    backStateRef.current.goBack = goBack
+    return () => { backStateRef.current.goBack = null }
+  })
+
+  return null
 }
 
 // 启动/路由切换时的加载画面
