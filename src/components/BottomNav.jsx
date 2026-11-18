@@ -1,4 +1,5 @@
 import { Link, useLocation } from 'react-router-dom'
+import { useKeyboardOpen } from '../lib/keyboard'
 
 const navItems = [
   { path: '/', icon: 'home_max', label: '首页' },
@@ -9,10 +10,15 @@ const navItems = [
 
 export default function BottomNav() {
   const location = useLocation()
+  // 键盘弹起时把底栏收下去：fixed 元素会被顶到键盘上方，压着输入区很难看
+  const keyboardOpen = useKeyboardOpen()
   return (
     <nav
       aria-label="主导航"
-      className="fixed bottom-0 left-0 right-0 z-50 flex justify-around items-center px-2"
+      aria-hidden={keyboardOpen || undefined}
+      className={`fixed bottom-0 left-0 right-0 z-50 flex justify-around items-center px-2 transition-transform duration-300 ease-out ${
+        keyboardOpen ? 'pointer-events-none translate-y-full' : 'translate-y-0'
+      }`}
       style={{
         height: 'calc(72px + env(safe-area-inset-bottom))',
         paddingBottom: 'env(safe-area-inset-bottom)',
@@ -28,6 +34,7 @@ export default function BottomNav() {
           <Link
             key={item.path}
             to={item.path}
+            tabIndex={keyboardOpen ? -1 : undefined}
             aria-current={isActive ? 'page' : undefined}
             className={`relative flex flex-col items-center justify-center rounded-2xl transition-all duration-300 active:scale-95 ${
               isActive

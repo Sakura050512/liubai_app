@@ -1,6 +1,7 @@
 import { useState, useRef, useEffect } from 'react'
 import { Link } from 'react-router-dom'
 import { chat, SYSTEM_PROMPT_FEELING, SYSTEM_PROMPT_TALK, CRISIS_RE } from '../lib/ai'
+import { useKeyboardOpen } from '../lib/keyboard'
 import { CRISIS_REPLY, markCrisisTouched } from '../lib/crisis'
 import { supabase } from '../lib/supabase'
 import { summarizeConversation, saveMemory, loadMemories, buildMemoryBlock, appendMemoryToBlock } from '../lib/memory'
@@ -51,6 +52,8 @@ export default function Talk() {
   const memoryBlockRef = useRef('')
   // 记忆条数（用于界面上给用户一个「ta 记得你」的提示）
   const [memoryCount, setMemoryCount] = useState(0)
+  // 键盘弹起时底栏收起，输入框落回键盘正上方
+  const keyboardOpen = useKeyboardOpen()
 
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: 'smooth' })
@@ -369,8 +372,14 @@ export default function Talk() {
         </div>
       </main>
 
-      {/* 输入框 */}
-      <div className="fixed bottom-[104px] left-1/2 -translate-x-1/2 w-[calc(100%-3rem)] max-w-xl z-40">
+      {/* 输入框：平时让开底栏，键盘弹起时贴到键盘上沿 */}
+      <div
+        className="fixed left-1/2 -translate-x-1/2 w-[calc(100%-3rem)] max-w-xl z-40"
+        style={{
+          bottom: keyboardOpen ? 'calc(env(safe-area-inset-bottom) + 12px)' : '104px',
+          transition: 'bottom 260ms cubic-bezier(0.22, 0.7, 0.2, 1)',
+        }}
+      >
         <div
           className="chat-input-shell bg-surface-container-low border border-outline-variant/20 rounded-[20px] p-2 flex items-center transition-all duration-300 focus-within:border-primary/50 focus-within:ring-2 focus-within:ring-primary/20"
           style={{ backdropFilter: 'blur(16px)', WebkitBackdropFilter: 'blur(16px)' }}
