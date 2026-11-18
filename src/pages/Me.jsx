@@ -405,24 +405,50 @@ export default function Me() {
 
       <main className="max-w-screen-md mx-auto px-5 pb-32" style={{ paddingTop: 'calc(80px + env(safe-area-inset-top))' }}>
 
-        {/* 用户信息 */}
-        <section className="mt-4 mb-8 flex flex-col items-start animate-fade-in">
+        {/* 用户信息：头像 + 昵称/签名横排 */}
+        <section className="mt-4 mb-8 animate-fade-in">
 
-          {/* 头像 + 选择器 */}
-          <div className="relative mb-5">
-            <button
-              onClick={() => setShowAvatarPicker(!showAvatarPicker)}
-              className="w-20 h-20 rounded-full bg-surface-container-low ring-4 ring-surface-container flex items-center justify-center text-4xl active:scale-95 transition-all duration-300"
-            >
-              {avatar}
-            </button>
-            <div className="absolute bottom-0 right-0 w-6 h-6 bg-primary rounded-full flex items-center justify-center pointer-events-none">
-              <span className="material-symbols-outlined text-on-primary" style={{ fontSize: 12 }}>edit</span>
+          <div className="flex items-center gap-5">
+            {/* 头像 + 选择器 */}
+            <div className="relative shrink-0">
+              <button
+                onClick={() => setShowAvatarPicker(!showAvatarPicker)}
+                className="w-20 h-20 rounded-full bg-surface-container-low ring-4 ring-surface-container flex items-center justify-center text-4xl active:scale-95 transition-all duration-300"
+              >
+                {avatar}
+              </button>
+              <div className="absolute bottom-0 right-0 w-6 h-6 bg-primary rounded-full flex items-center justify-center pointer-events-none">
+                <span className="material-symbols-outlined text-on-primary" style={{ fontSize: 12 }}>edit</span>
+              </div>
+            </div>
+
+            {/* 昵称 + 签名 */}
+            <div className="flex-1 min-w-0">
+              {editing ? (
+                <input
+                  aria-label="编辑昵称"
+                  className="font-display text-2xl font-medium tracking-tight text-on-surface mb-1 bg-transparent border-b border-primary focus:ring-0 pb-1 w-full outline-none"
+                  value={profile.nickname}
+                  onChange={e => setProfile(p => ({ ...p, nickname: e.target.value }))}
+                  onBlur={saveNickname}
+                  onKeyDown={e => e.key === 'Enter' && saveNickname()}
+                  autoFocus
+                />
+              ) : (
+                <h2
+                  className="font-display text-2xl font-medium tracking-tight text-on-surface mb-1 cursor-pointer hover:text-primary transition-colors duration-300 flex items-center gap-2"
+                  onClick={() => setEditing(true)}
+                >
+                  {profile.nickname}
+                  <span className="material-symbols-outlined text-outline text-sm">edit</span>
+                </h2>
+              )}
+              <p className="text-on-surface-variant font-light tracking-wide text-sm">寻觅一处属于心灵的留白</p>
             </div>
           </div>
 
           {showAvatarPicker && (
-            <div className="bg-surface-container-low rounded-2xl p-4 mb-4 w-full animate-fade-in">
+            <div className="bg-surface-container-low rounded-2xl p-4 mt-4 w-full animate-fade-in">
               <div className="grid grid-cols-8 gap-2">
                 {AVATARS.map(e => (
                   <button
@@ -443,27 +469,6 @@ export default function Me() {
             </div>
           )}
 
-          {/* 昵称 */}
-          {editing ? (
-            <input
-              aria-label="编辑昵称"
-              className="font-display text-3xl font-medium tracking-tight text-on-surface mb-1 bg-transparent border-b border-primary focus:ring-0 pb-1 w-48 outline-none"
-              value={profile.nickname}
-              onChange={e => setProfile(p => ({ ...p, nickname: e.target.value }))}
-              onBlur={saveNickname}
-              onKeyDown={e => e.key === 'Enter' && saveNickname()}
-              autoFocus
-            />
-          ) : (
-            <h2
-              className="font-display text-3xl font-medium tracking-tight text-on-surface mb-1 cursor-pointer hover:text-primary transition-colors duration-300 flex items-center gap-2"
-              onClick={() => setEditing(true)}
-            >
-              {profile.nickname}
-              <span className="material-symbols-outlined text-outline text-sm">edit</span>
-            </h2>
-          )}
-          <p className="text-on-surface-variant font-light tracking-wide text-sm">寻觅一处属于心灵的留白</p>
         </section>
 
         {/* 统计卡片 */}
