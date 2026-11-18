@@ -6,6 +6,7 @@ import { todayEntry as getTodayEntry, todayEntryIndex as getTodayEntryIndex } fr
 import { INTENSITIES, buildMoodNote, parseMoodNote } from '../lib/moodNote'
 import { MOOD_CATEGORIES, MOOD_ICONS, pickCard } from '../lib/garden'
 import { getSolarTerm } from '../lib/solar'
+import { findReviewTarget, buildReview, isReviewSeen, markReviewSeen } from '../lib/review'
 import TopBar from '../components/TopBar'
 import BottomNav from '../components/BottomNav'
 import ThemeToggleButton from '../components/ThemeToggleButton'
@@ -38,6 +39,8 @@ export default function Home() {
   const [todayRecord, setTodayRecord] = useState(null)
   // 打卡提醒横幅（设定提醒时间后、当天未打卡时显示）
   const [showReminderBanner, setShowReminderBanner] = useState(false)
+  // 次日回顾：昨天/前天写下的那一条，回来时轻轻提一句
+  const [review, setReview] = useState(null)
   // 打卡成功后的激励卡片
   const [moodCard, setMoodCard] = useState(null)
   // 顶栏 ☰ 打开的个人中心抽屉
@@ -80,6 +83,20 @@ export default function Home() {
       setTotalMoods(countRes.count || 0)
       setStreak(calcStreak((datesRes.data || []).map(r => r.created_at)))
       setLoadingMood(false)
+
+      // 次日回顾：取最近几天里"昨天/前天"那一条（24~48 小时窗口），
+      // 同一条只回顾一次，看过就不再打扰
+      const { data: recent } = await supabase
+        .from('mood_records')
+        .select('id, mood, emoji, note, created_at')
+        .eq('user_id', user.id)
+        .order('created_at', { ascending: false })
+        .limit(10)
+      const target = findReviewTarget(recent || [])
+      if (target && !isReviewSeen(target.id)) {
+        const built = buildReview(target)
+        if (built) setReview({ ...built, id: target.id })
+      }
 
       // 打卡提醒：超过设定时间且今天还没打卡时，显示提醒横幅
       // （用本地 data 判断，不能用 moodDone——setState 异步，此刻还是旧值）
@@ -198,6 +215,30 @@ export default function Home() {
         style={{ maxWidth: '480px', padding: 'calc(64px + env(safe-area-inset-top)) 16px 0', boxSizing: 'border-box' }}
       >
         <div className="flex flex-col gap-5">
+
+          {/* 次日回顾：让昨天写下的那句话被回应一次 */}
+          {review && (
+            <div className="relative bg-surface-container-lowest dark:bg-surface-container-low border border-outline-variant/10 rounded-2xl px-4 py-3.5 animate-slide-up overflow-hidden">
+              <div className="flex gap-3">
+                <div className="flex-shrink-0 w-8 h-8 rounded-full bg-primary-container/60 flex items-center justify-center">
+                  <span className="material-symbols-outlined text-primary" style={{ fontSize: 16 }}>history</span>
+                </div>
+                <div className="flex-1 min-w-0 pt-0.5">
+                  <p className="text-[10px] tracking-[0.16em] text-outline uppercase mb-1">{review.dayLabel}的你</p>
+                  <p className="text-sm font-light text-on-surface leading-relaxed">{review.line}</p>
+                </div>
+              </div>
+              <button
+                onClick={() => {
+                  markReviewSeen(review.id)
+                  setReview(null)
+                }}
+                className="mt-3 ml-11 text-xs font-light text-primary/80 hover:text-primary transition-colors"
+              >
+                知道了
+              </button>
+            </div>
+          )}
 
           {/* 打卡提醒横幅 */}
           {showReminderBanner && (
