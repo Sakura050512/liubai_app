@@ -7,6 +7,7 @@ import { INTENSITIES, buildMoodNote, parseMoodNote } from '../lib/moodNote'
 import { MOOD_CATEGORIES, MOOD_ICONS, pickCard } from '../lib/garden'
 import { getSolarTerm } from '../lib/solar'
 import { findReviewTarget, buildReview, isReviewSeen, markReviewSeen } from '../lib/review'
+import { buildTodayTasks, greeting, todaySummary } from '../lib/today'
 import TopBar from '../components/TopBar'
 import BottomNav from '../components/BottomNav'
 import ThemeToggleButton from '../components/ThemeToggleButton'
@@ -41,6 +42,8 @@ export default function Home() {
   const [showReminderBanner, setShowReminderBanner] = useState(false)
   // 次日回顾：昨天/前天写下的那一条，回来时轻轻提一句
   const [review, setReview] = useState(null)
+  // 今天是否已写过日记（用于"今天该做什么"判断）
+  const [journalDone, setJournalDone] = useState(false)
   // 打卡成功后的激励卡片
   const [moodCard, setMoodCard] = useState(null)
   // 顶栏 ☰ 打开的个人中心抽屉
@@ -50,6 +53,17 @@ export default function Home() {
   const solarTerm = useMemo(() => getSolarTerm(), [])
   const todayEntry = getTodayEntry()
   const todayEntryIdx = getTodayEntryIndex()
+
+  // 「今天」模块：只说今天该做什么，不再把功能表摊开
+  const hi = useMemo(() => greeting(), [])
+  const tasks = useMemo(
+    () => buildTodayTasks({ moodDone, journalDone, reviewAvailable: !!review }),
+    [moodDone, journalDone, review]
+  )
+  const summaryLine = useMemo(
+    () => todaySummary({ moodDone, journalDone, reviewSeen: !review, hasReview: !!review }),
+    [moodDone, journalDone, review]
+  )
 
   useEffect(() => {
     const checkTodayMood = async () => {
@@ -97,6 +111,17 @@ export default function Home() {
         const built = buildReview(target)
         if (built) setReview({ ...built, id: target.id })
       }
+
+      // 今天是否已写日记（只取一条，够判断就行）
+      const { start: dayStart, end: dayEnd } = todayRange()
+      const { data: journalToday } = await supabase
+        .from('journal_entries')
+        .select('id')
+        .eq('user_id', user.id)
+        .gte('created_at', dayStart.toISOString())
+        .lte('created_at', dayEnd.toISOString())
+        .limit(1)
+      setJournalDone(!!(journalToday && journalToday.length > 0))
 
       // 打卡提醒：超过设定时间且今天还没打卡时，显示提醒横幅
       // （用本地 data 判断，不能用 moodDone——setState 异步，此刻还是旧值）
@@ -218,7 +243,7 @@ export default function Home() {
 
           {/* 次日回顾：让昨天写下的那句话被回应一次 */}
           {review && (
-            <div className="relative bg-surface-container-lowest dark:bg-surface-container-low border border-outline-variant/10 rounded-2xl px-4 py-3.5 animate-slide-up overflow-hidden">
+            <div id="review-card" className="relative bg-surface-container-lowest dark:bg-surface-container-low border border-outline-variant/10 rounded-2xl px-4 py-3.5 animate-slide-up overflow-hidden">
               <div className="flex gap-3">
                 <div className="flex-shrink-0 w-8 h-8 rounded-full bg-primary-container/60 flex items-center justify-center">
                   <span className="material-symbols-outlined text-primary" style={{ fontSize: 16 }}>history</span>
@@ -269,8 +294,9 @@ export default function Home() {
               )}
             </div>
             <h2 className="font-display text-4xl font-medium leading-snug text-on-surface text-balance">
-              给心灵留一点<br />
-              <span className="italic text-primary">空白</span>。
+              {hi.split(/[，,]/)[0]}，
+              <br />
+              <span className="italic text-primary">{hi.split(/[，,]/)[1] || '留一点空白'}</span>
             </h2>
             {/* 右侧装饰:一株安静生长的嫩芽(呼应情绪花园) */}
             <div
@@ -294,6 +320,7 @@ export default function Home() {
 
           {/* 情绪打卡 */}
           <section
+            id="mood-card"
             className="bg-surface-container-lowest rounded-3xl p-5 w-full animate-slide-up border border-outline-variant/10"
             style={{ animationDelay: '60ms', boxShadow: '0 4px 32px rgba(49,51,47,0.04)' }}
           >
@@ -431,6 +458,61 @@ export default function Home() {
                     </span>
                   </Link>
                 </div>
+              </div>
+            )}
+          </section>
+
+          {/* 今天该做什么 —— 首页的核心，替代原来摊开的功能入口 */}
+          <section className="w-full animate-slide-up" style={{ animationDelay: '120ms' }}>
+            <div className="flex items-baseline justify-between mb-2.5 px-1">
+              <p className="text-[11px] tracking-[0.18em] text-outline uppercase">今天</p>
+              <p className="text-[11px] font-light text-on-surface-variant/70">{summaryLine}</p>
+            </div>
+
+            {tasks.length > 0 ? (
+              <div className="rounded-3xl bg-surface-container-lowest border border-outline-variant/10 overflow-hidden"
+                style={{ boxShadow: '0 4px 32px rgba(49,51,47,0.04)' }}>
+                {tasks.slice(0, 2).map((t, i) => {
+                  const inner = (
+                    <>
+                      <div className="flex-shrink-0 w-10 h-10 rounded-full bg-primary-container/45 flex items-center justify-center transition-transform duration-300 group-hover:scale-105">
+                        <span className="material-symbols-outlined text-primary text-xl">{t.icon}</span>
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm text-on-surface leading-snug">{t.title}</p>
+                        <p className="text-[11px] text-on-surface-variant/70 font-light mt-0.5">{t.desc}</p>
+                      </div>
+                      <span className="material-symbols-outlined text-outline-variant text-base flex-shrink-0 group-hover:text-primary group-hover:translate-x-0.5 transition-all duration-300">
+                        chevron_right
+                      </span>
+                    </>
+                  )
+                  const cls = `group w-full flex items-center gap-3.5 px-4 py-3.5 text-left transition-colors duration-300 active:bg-surface-container-low/60 hover:bg-surface-container-low/40 ${i > 0 ? 'border-t border-outline-variant/10' : ''}`
+                  return t.to ? (
+                    <Link key={t.key} to={t.to} className={cls}>{inner}</Link>
+                  ) : (
+                    <button
+                      key={t.key}
+                      onClick={() => {
+                        if (t.key === 'mood') {
+                          document.getElementById('mood-card')?.scrollIntoView({ behavior: 'smooth', block: 'center' })
+                        } else if (t.key === 'review') {
+                          document.getElementById('review-card')?.scrollIntoView({ behavior: 'smooth', block: 'center' })
+                        }
+                      }}
+                      className={cls}
+                    >
+                      {inner}
+                    </button>
+                  )
+                })}
+              </div>
+            ) : (
+              <div className="rounded-3xl bg-primary-container/20 border border-primary/10 px-5 py-6 text-center"
+                style={{ boxShadow: '0 4px 32px rgba(49,51,47,0.04)' }}>
+                <span className="material-symbols-outlined text-primary/70 text-3xl mb-2 inline-block">spa</span>
+                <p className="text-sm font-light text-on-surface">今天该做的都做完了</p>
+                <p className="text-[11px] text-on-surface-variant/70 font-light mt-1">剩下的时间，怎么过都好</p>
               </div>
             )}
           </section>
