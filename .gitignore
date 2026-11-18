@@ -24,6 +24,12 @@ android/capacitor-cordova-android-plugins/
 # iOS files
 ios/
 
+# APK build artifacts
+*.apk
+android/app/build/
+android/.gradle/
+android/local.properties
+
 # Temporary files
 *.tmp
 *.temp
