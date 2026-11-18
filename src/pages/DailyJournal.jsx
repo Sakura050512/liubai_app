@@ -14,42 +14,45 @@ const PROMPTS = [
   '今天有没有什么你想对自己说的话？',
 ]
 
+const timeLabel = iso =>
+  new Date(iso).toLocaleTimeString('zh-CN', { hour: '2-digit', minute: '2-digit', hour12: false })
+
 export default function DailyJournal() {
-  const [promptIdx] = useState(() => Math.floor(Math.random() * PROMPTS.length))
+  const [promptIdx, setPromptIdx] = useState(() => Math.floor(Math.random() * PROMPTS.length))
   const [text, setText] = useState('')
   const [saved, setSaved] = useState(false)
   const [reflection, setReflection] = useState(null)
   const [aiLoading, setAiLoading] = useState(false)
+  const [todayEntries, setTodayEntries] = useState([]) // 今天已写的各篇（新的在前）
+  const [editingId, setEditingId] = useState(null) // 正在编辑的已有篇目；null = 新的一篇
   const [history, setHistory] = useState([])
   const [showHistory, setShowHistory] = useState(false)
   const [pageLoading, setPageLoading] = useState(true)
 
-  // 页面加载时检查今天是否已有日记
+  // 拉取今天已写的篇目 + 更早的历史
+  const loadToday = async user => {
+    const { start: dayStart, end: dayEnd } = todayRange()
+    const { data } = await supabase
+      .from('journal_entries')
+      .select('*')
+      .eq('user_id', user.id)
+      .gte('created_at', dayStart.toISOString())
+      .lte('created_at', dayEnd.toISOString())
+      .order('created_at', { ascending: false })
+    setTodayEntries(data || [])
+    return data || []
+  }
+
   useEffect(() => {
     const load = async () => {
       const { data: { user } } = await supabase.auth.getUser()
       if (!user) return
 
-      const { start: dayStart, end: dayEnd } = todayRange()
+      await loadToday(user)
 
-      // 今天的日记
-      const { data: todayData } = await supabase
-        .from('journal_entries')
-        .select('*')
-        .eq('user_id', user.id)
-        .gte('created_at', dayStart.toISOString())
-        .lte('created_at', dayEnd.toISOString())
-        .limit(1)
+      const { start: dayStart } = todayRange()
 
-      if (todayData && todayData.length > 0) {
-        setText(todayData[0].content)
-        if (todayData[0].ai_reflection) {
-          setReflection({ text: todayData[0].ai_reflection })
-        }
-        setSaved(true)
-      }
-
-      // 历史日记（最近5条）
+      // 历史日记（更早的日子，最近5条）
       const { data: histData } = await supabase
         .from('journal_entries')
         .select('content, created_at, ai_reflection')
@@ -64,6 +67,25 @@ export default function DailyJournal() {
 
     load()
   }, [])
+
+  // 从今天已有的一篇开始续写/修改
+  const startEdit = entry => {
+    setEditingId(entry.id)
+    setText(entry.content || '')
+    setReflection(entry.ai_reflection ? { text: entry.ai_reflection } : null)
+    setSaved(true)
+    window.scrollTo({ top: 0, behavior: 'smooth' })
+  }
+
+  // 开新的一篇（不覆盖今天之前的）
+  const startNew = () => {
+    setEditingId(null)
+    setText('')
+    setReflection(null)
+    setSaved(false)
+    setPromptIdx(Math.floor(Math.random() * PROMPTS.length))
+    window.scrollTo({ top: 0, behavior: 'smooth' })
+  }
 
   const handleSave = async () => {
     if (!text.trim()) return
@@ -88,30 +110,28 @@ export default function DailyJournal() {
     const { data: { user } } = await supabase.auth.getUser()
     if (!user) return
 
-    const { start: dayStart, end: dayEnd } = todayRange()
-
-    // 检查今天是否已有记录（更新 or 插入）
-    const { data: existing } = await supabase
-      .from('journal_entries')
-      .select('id')
-      .eq('user_id', user.id)
-      .gte('created_at', dayStart.toISOString())
-      .lte('created_at', dayEnd.toISOString())
-      .limit(1)
-
-    if (existing && existing.length > 0) {
+    if (editingId) {
+      // 修改已有的那一篇：只更新这一条
       await supabase
         .from('journal_entries')
         .update({ content: text, ai_reflection: aiText })
-        .eq('id', existing[0].id)
+        .eq('id', editingId)
     } else {
-      await supabase.from('journal_entries').insert({
-        user_id: user.id,
-        prompt: PROMPTS[promptIdx],
-        content: text,
-        ai_reflection: aiText,
-      })
+      // 新写一篇：追加，不碰今天已有的其他篇
+      const { data: inserted } = await supabase
+        .from('journal_entries')
+        .insert({
+          user_id: user.id,
+          prompt: PROMPTS[promptIdx],
+          content: text,
+          ai_reflection: aiText,
+        })
+        .select('id')
+        .maybeSingle()
+      if (inserted?.id) setEditingId(inserted.id)
     }
+
+    await loadToday(user)
   }
 
   return (
@@ -138,6 +158,47 @@ export default function DailyJournal() {
           </div>
         </section>
 
+        {/* 今天已经写过的篇目 */}
+        {todayEntries.length > 0 && (
+          <section className="mb-6 animate-fade-in">
+            <div className="flex items-center justify-between mb-2.5">
+              <p className="text-[11px] tracking-[0.18em] text-outline uppercase">
+                今天写了 {todayEntries.length} 篇
+              </p>
+              <button
+                onClick={startNew}
+                className="flex items-center gap-1 text-xs font-light text-primary/80 hover:text-primary transition-colors"
+              >
+                <span className="material-symbols-outlined" style={{ fontSize: 14 }}>add</span>
+                再写一篇
+              </button>
+            </div>
+            <div className="flex gap-2 overflow-x-auto no-scrollbar pb-1 -mx-1 px-1">
+              {todayEntries.map(e => {
+                const active = editingId === e.id
+                return (
+                  <button
+                    key={e.id}
+                    onClick={() => startEdit(e)}
+                    className={`flex-shrink-0 w-[180px] text-left rounded-xl px-3.5 py-2.5 border transition-all duration-300 active:scale-[0.98] ${
+                      active
+                        ? 'bg-primary-container/40 border-primary/30'
+                        : 'bg-surface-container-lowest border-outline-variant/15 hover:border-primary/30'
+                    }`}
+                  >
+                    <p className={`text-[10px] tracking-wider mb-1 ${active ? 'text-primary' : 'text-outline'}`}>
+                      {timeLabel(e.created_at)} · {active ? '正在编辑' : '点击修改'}
+                    </p>
+                    <p className="text-on-surface text-xs font-light leading-snug line-clamp-2">
+                      {e.content?.slice(0, 40) || '（空白）'}
+                    </p>
+                  </button>
+                )
+              })}
+            </div>
+          </section>
+        )}
+
         {/* 写作区 */}
         <section className="relative mb-6 animate-fade-in" style={{ animationDelay: '150ms' }}>
           {pageLoading ? (
@@ -146,6 +207,19 @@ export default function DailyJournal() {
             </div>
           ) : (
             <div className="rounded-3xl bg-surface-container-lowest dark:bg-surface-container-low border border-outline-variant/10 p-6 transition-shadow duration-300 focus-within:border-primary/40 focus-within:shadow-glow-soft">
+              <div className="flex items-center justify-between mb-3">
+                <p className="text-[11px] tracking-[0.18em] text-outline uppercase">
+                  {editingId ? '修改这一篇' : '新的一篇'}
+                </p>
+                {editingId && (
+                  <button
+                    onClick={startNew}
+                    className="text-[11px] font-light text-on-surface-variant hover:text-primary transition-colors"
+                  >
+                    不改了，写新的
+                  </button>
+                )}
+              </div>
               <textarea
                 className="no-focus-ring w-full bg-transparent border-none p-0 text-on-surface text-lg font-light resize-none placeholder:text-outline-variant/60 leading-relaxed min-h-[280px]"
                 placeholder="从任何地方开始写..."
