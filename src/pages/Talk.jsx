@@ -2,6 +2,7 @@ import { useState, useRef, useEffect } from 'react'
 import { Link } from 'react-router-dom'
 import { chat, SYSTEM_PROMPT_FEELING, SYSTEM_PROMPT_TALK, CRISIS_RE, CRISIS_REPLY } from '../lib/ai'
 import { supabase } from '../lib/supabase'
+import { summarizeConversation, saveMemory, loadMemories, buildMemoryBlock, appendMemoryToBlock } from '../lib/memory'
 import TopBar from '../components/TopBar'
 import ThemeToggleButton from '../components/ThemeToggleButton'
 import BottomNav from '../components/BottomNav'
@@ -44,10 +45,28 @@ export default function Talk() {
   const bottomRef = useRef(null)
   const discardTimer = useRef(null)
   const noticeTimer = useRef(null)
+  // 会话记忆：最近几次对话的摘要，拼进 system prompt 让 AI 记得你
+  const memoryBlockRef = useRef('')
+  // 记忆条数（用于界面上给用户一个「ta 记得你」的提示）
+  const [memoryCount, setMemoryCount] = useState(0)
 
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: 'smooth' })
   }, [msgs])
+
+  // 载入历史记忆（表未建好时 loadMemories 返回空数组，功能自动关闭）
+  useEffect(() => {
+    let alive = true
+    ;(async () => {
+      const { data: { user } } = await supabase.auth.getUser()
+      if (!user || !alive) return
+      const memories = await loadMemories(user.id)
+      if (!alive) return
+      memoryBlockRef.current = buildMemoryBlock(memories)
+      setMemoryCount(memories.length)
+    })()
+    return () => { alive = false }
+  }, [])
 
   // 卸载时清理定时器
   useEffect(() => () => {
@@ -97,7 +116,7 @@ export default function Talk() {
     setMsgs(m => [...m, { role: 'ai', text: '', streaming: true }])
     let reply = ''
     const promptMsgs = [
-      { role: 'system', content: mode.prompt },
+      { role: 'system', content: mode.prompt + memoryBlockRef.current },
       ...newMsgs.slice(-MAX_HISTORY).map(m => ({
         role: m.role === 'ai' ? 'assistant' : 'user',
         content: m.text,
@@ -133,18 +152,23 @@ export default function Talk() {
       .map(m => `${m.role === 'user' ? '我' : '留白'}：${m.text}`)
       .join('\n\n')
 
-  // 留下记录：写入 talk_records，条数 +1
+  // 留下记录：写入 talk_records，条数 +1；随后异步生成并保存一条会话记忆
   const keepSession = async () => {
     if (saving || loading) return
     const { data: { user } } = await supabase.auth.getUser()
     if (!user) { showNotice('error', '登录状态已失效，请重新登录'); return }
 
     setSaving(true)
-    const { error } = await supabase.from('talk_records').insert({
-      user_id: user.id,
-      mode: mode.label,
-      content: buildTranscript(),
-    })
+    const transcript = buildTranscript()
+    const { data: inserted, error } = await supabase
+      .from('talk_records')
+      .insert({
+        user_id: user.id,
+        mode: mode.label,
+        content: transcript,
+      })
+      .select('id')
+      .maybeSingle()
     setSaving(false)
 
     if (error) {
@@ -153,6 +177,18 @@ export default function Talk() {
     }
     showNotice('success', '这段对话已经留下 🌿')
     resetConversation()
+
+    // 记忆生成放在主流程之后：失败不影响已留住的对话
+    ;(async () => {
+      const memory = await summarizeConversation(transcript)
+      if (!memory) return
+      const ok = await saveMemory(user.id, memory, inserted?.id ?? null)
+      if (ok) {
+        // 把新记忆接入本页缓存，本次会话内后续对话也能用上
+        memoryBlockRef.current = appendMemoryToBlock(memoryBlockRef.current, memory)
+        setMemoryCount(c => c + 1)
+      }
+    })()
   }
 
   // 丢掉这次谈话：第一次点击进入确认态，再点一次才真正丢弃
@@ -212,6 +248,12 @@ export default function Talk() {
               ? '描述你的感受，我来帮你找到它的名字'
               : '说完就走，或者留下来，都可以'}
           </p>
+          {memoryCount > 0 && (
+            <p className="mt-3 inline-flex items-center gap-1.5 text-xs font-light text-primary/80 bg-primary-container/25 px-2.5 py-1 rounded-full">
+              <span className="material-symbols-outlined" style={{ fontSize: 13 }}>psychology</span>
+              我还记得你之前的 {memoryCount} 段心事
+            </p>
+          )}
         </header>
 
         <div className="space-y-8">
