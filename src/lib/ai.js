@@ -80,10 +80,5 @@ export const SYSTEM_PROMPT_TALK = `你是"留白"App的AI倾听者，一个安�
 // 命中关键词时不调用 AI，立即返回求助信息（前端即时响应；edge function 有同样检测兜底）
 export const CRISIS_RE = /自杀|想死|不想活|活着没意思|结束生命|轻生|自残|伤害自己|活不下去|kill\s*myself|suicide|end\s*my\s*life|hurt\s*myself/i
 
-export const CRISIS_REPLY = `我听到了，也谢谢你愿意说出来。你现在的感受很重要，但此刻你需要的是专业的帮助，而我不具备这样的能力。
-
-如果你现在有伤害自己的念头，请一定联系这些地方：
-· 全国心理援助热线：12356（24小时）
-· 希望24热线：400-161-9995（24小时）
-
-你值得被好好照顾，请现在就去打电话，好吗？`
+// 求助文案与热线清单统一放在 lib/crisis.js，避免两处各写一份后不一致
+export { CRISIS_REPLY } from './crisis'

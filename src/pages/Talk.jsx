@@ -1,11 +1,13 @@
 import { useState, useRef, useEffect } from 'react'
 import { Link } from 'react-router-dom'
-import { chat, SYSTEM_PROMPT_FEELING, SYSTEM_PROMPT_TALK, CRISIS_RE, CRISIS_REPLY } from '../lib/ai'
+import { chat, SYSTEM_PROMPT_FEELING, SYSTEM_PROMPT_TALK, CRISIS_RE } from '../lib/ai'
+import { CRISIS_REPLY, markCrisisTouched } from '../lib/crisis'
 import { supabase } from '../lib/supabase'
 import { summarizeConversation, saveMemory, loadMemories, buildMemoryBlock, appendMemoryToBlock } from '../lib/memory'
 import TopBar from '../components/TopBar'
 import ThemeToggleButton from '../components/ThemeToggleButton'
 import BottomNav from '../components/BottomNav'
+import CrisisResources from '../components/CrisisResources'
 
 const MODES = [
   {
@@ -107,7 +109,8 @@ export default function Talk() {
 
     // 危机干预：命中关键词时立即给出求助信息，不调用 AI
     if (CRISIS_RE.test(t)) {
-      setMsgs(m => [...m, { role: 'ai', text: CRISIS_REPLY }])
+      markCrisisTouched() // 只记在本机，不写库：这类内容不该多留一份
+      setMsgs(m => [...m, { role: 'ai', text: CRISIS_REPLY, crisis: true }])
       setLoading(false)
       return
     }
@@ -294,6 +297,11 @@ export default function Talk() {
                       查看完整词条
                       <span className="material-symbols-outlined text-sm ml-1">arrow_forward</span>
                     </Link>
+                  )}
+                  {msg.crisis && (
+                    <div className="pt-3 mt-1 border-t border-outline-variant/15">
+                      <CrisisResources embedded />
+                    </div>
                   )}
                 </div>
               )}

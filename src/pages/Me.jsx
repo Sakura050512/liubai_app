@@ -12,6 +12,7 @@ import EmptyState from '../components/EmptyState'
 import TopBar from '../components/TopBar'
 import BottomNav from '../components/BottomNav'
 import ThemeToggleButton from '../components/ThemeToggleButton'
+import CrisisResources from '../components/CrisisResources'
 
 const TABS = ['概览', '情绪', '心里话', '收藏']
 
@@ -39,6 +40,7 @@ export default function Me() {
   const [exporting, setExporting] = useState(false)
   const [showReminder, setShowReminder] = useState(false)
   const [showPrivacy, setShowPrivacy] = useState(false)
+  const [showCrisis, setShowCrisis] = useState(false)
   const [reminder, setReminder] = useState(() => localStorage.getItem('liubai-reminder') || 'off')
   const [reminderResult, setReminderResult] = useState(null)
   const [profile, setProfile] = useState({ nickname: '旅行者' })
@@ -328,6 +330,9 @@ export default function Me() {
         </div>
       )}
 
+      {/* 心理援助热线 */}
+      <CrisisResources open={showCrisis} onClose={() => setShowCrisis(false)} />
+
       {/* 隐私说明弹窗 */}
       {showPrivacy && (
         <div
@@ -582,6 +587,25 @@ export default function Me() {
                   }`} />
                 </button>
               </div>
+            </div>
+
+            <div>
+              <h3 className="font-headline text-xs font-semibold tracking-widest text-on-surface-variant uppercase mb-3 pl-1">
+                心理援助
+              </h3>
+              <button
+                onClick={() => setShowCrisis(true)}
+                className="group w-full flex items-center justify-between p-4 rounded-xl bg-primary-container/25 border border-primary/15 hover:bg-primary-container/40 transition-colors duration-300"
+              >
+                <div className="flex items-center gap-4">
+                  <span className="material-symbols-outlined text-primary">favorite</span>
+                  <div className="text-left">
+                    <p className="text-on-surface font-light">心理援助热线</p>
+                    <p className="text-[11px] text-outline font-light mt-0.5">难受的时候，有人可以说话</p>
+                  </div>
+                </div>
+                <span className="material-symbols-outlined text-primary/50 text-sm">chevron_right</span>
+              </button>
             </div>
 
             <div>
