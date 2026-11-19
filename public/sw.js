@@ -1,7 +1,11 @@
 // 留白 PWA Service Worker
 // 策略:预缓存 app shell + 运行时缓存同源 GET(网络优先,离线回退缓存/首页)
 // 版本更新时把 CACHE 名 bump 一下即可(如 liubai-v2),旧缓存自动清理
-const CACHE = 'liubai-v1'
+//
+// 注意:这里曾经是 cache-first(先查缓存命中就直接返回),导致发版后用户一直
+// 看到旧 bundle——页面看起来「没更新」。现在改成网络优先:每次先要新文件,
+// 成功就顺手更新缓存;离线时才用缓存兜底。
+const CACHE = 'liubai-v2'
 const SHELL = ['/', '/index.html', '/manifest.webmanifest']
 
 self.addEventListener('install', (e) => {
@@ -28,19 +32,20 @@ self.addEventListener('fetch', (e) => {
   const url = new URL(req.url)
   if (url.origin !== self.location.origin) return // 跨域(Supabase API 等)不拦截
 
-  // 音源文件未就绪时会 404,不缓存失败响应,避免把 404 缓存成"正常"
   e.respondWith(
-    caches.match(req).then((hit) => {
-      if (hit) return hit
-      return fetch(req)
-        .then((res) => {
-          if (res.ok) {
-            const copy = res.clone()
-            caches.open(CACHE).then((c) => c.put(req, copy))
-          }
-          return res
-        })
-        .catch(() => (req.mode === 'navigate' ? caches.match('/index.html') : Response.error()))
-    })
+    fetch(req)
+      .then((res) => {
+        // 只缓存成功响应,避免把 404/500 缓存成"正常"
+        if (res.ok && res.type === 'basic') {
+          const copy = res.clone()
+          caches.open(CACHE).then((c) => c.put(req, copy)).catch(() => {})
+        }
+        return res
+      })
+      .catch(() =>
+        caches
+          .match(req)
+          .then((hit) => hit || (req.mode === 'navigate' ? caches.match('/index.html') : Response.error()))
+      )
   )
 })
