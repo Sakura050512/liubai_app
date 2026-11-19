@@ -14,7 +14,7 @@ describe('buildTodayTasks', () => {
   })
 
   it('都做完了就没有任务', () => {
-    const tasks = buildTodayTasks({ moodDone: true, journalDone: true, reviewAvailable: false, hour: 21 })
+    const tasks = buildTodayTasks({ moodDone: true, journalDone: true, hour: 21 })
     expect(tasks).toEqual([])
   })
 
@@ -25,9 +25,9 @@ describe('buildTodayTasks', () => {
     expect(night[0].title).toContain('睡前')
   })
 
-  it('有回顾可用时才出现回顾项', () => {
-    const withReview = buildTodayTasks({ moodDone: true, journalDone: true, reviewAvailable: true })
-    expect(withReview.map(t => t.key)).toContain('review')
+  it('不再出现回顾项（次日回顾卡片已移除）', () => {
+    const tasks = buildTodayTasks({ moodDone: true, journalDone: true, reviewAvailable: true })
+    expect(tasks.map(t => t.key)).not.toContain('review')
   })
 
   it('心情项留在本页，不跳转', () => {
@@ -53,16 +53,16 @@ describe('greeting', () => {
 
 describe('todaySummary', () => {
   it('全部完成时给出松弛的总结', () => {
-    expect(todaySummary({ moodDone: true, journalDone: true, hasReview: false })).toContain('都做完了')
+    expect(todaySummary({ moodDone: true, journalDone: true })).toContain('都做完了')
   })
 
   it('只差一件时说"还差一件"', () => {
-    const s = todaySummary({ moodDone: true, journalDone: false, hasReview: false })
+    const s = todaySummary({ moodDone: true, journalDone: false })
     expect(s).toBe('还差一件：日记')
   })
 
   it('差多件时列出', () => {
-    const s = todaySummary({ moodDone: false, journalDone: false, hasReview: false })
+    const s = todaySummary({ moodDone: false, journalDone: false })
     expect(s).toContain('心情')
     expect(s).toContain('日记')
   })

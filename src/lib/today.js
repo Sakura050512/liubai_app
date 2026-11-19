@@ -5,8 +5,8 @@
 // 一天最多突出 2 件事，其余收进「还可以」一行小字，避免选择瘫痪。
 
 // 一天的引导项。weight 越小越优先；done=true 的不再出现
-// 优先级依据：记录心情(核心) > 写日记(次核心) > 回顾(轻) > 其他
-export function buildTodayTasks({ moodDone, journalDone, reviewAvailable, hour = new Date().getHours() }) {
+// 优先级依据：记录心情(核心) > 写日记(次核心)
+export function buildTodayTasks({ moodDone, journalDone, hour = new Date().getHours() }) {
   const tasks = []
 
   if (!moodDone) {
@@ -34,17 +34,6 @@ export function buildTodayTasks({ moodDone, journalDone, reviewAvailable, hour =
     })
   }
 
-  if (reviewAvailable) {
-    tasks.push({
-      key: 'review',
-      weight: 3,
-      icon: 'history',
-      title: '看看昨天的自己',
-      desc: '你昨天留下了一段话',
-      to: null,
-    })
-  }
-
   return tasks.filter(Boolean).sort((a, b) => a.weight - b.weight)
 }
 
@@ -65,11 +54,10 @@ export function greeting(hour = new Date().getHours()) {
 }
 
 // 一句话总结"今天还差什么"，用于卡片副标题
-export function todaySummary({ moodDone, journalDone, reviewSeen, hasReview }) {
+export function todaySummary({ moodDone, journalDone }) {
   const left = []
   if (!moodDone) left.push('心情')
   if (!journalDone) left.push('日记')
-  if (hasReview && !reviewSeen) left.push('回顾')
   if (!left.length) return '今天该做的都做完了，剩下的时间是你的'
   if (left.length === 1) return `还差一件：${left[0]}`
   return `还差 ${left.length} 件：${left.join('、')}`
