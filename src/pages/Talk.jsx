@@ -262,24 +262,6 @@ export default function Talk() {
           )}
         </header>
 
-        {/* 首次进入：给几句话当台阶，点一下就能直接开口 */}
-        {!hasUserMsg && (
-          <div className="flex flex-wrap gap-2 mb-6 animate-fade-in" style={{ animationDelay: '120ms' }}>
-            {(mode.id === 'name'
-              ? ['心里有点堵，说不上来', '今天挺平静的', '有点累，但还行']
-              : ['想找个人说说话', '今天发生了一件小事', '说不清，就是不舒服']
-            ).map((text) => (
-                <button
-                  key={text}
-                  onClick={() => setInput(text)}
-                  className="px-4 py-2 rounded-full bg-surface-container-lowest border border-outline-variant/20 text-[13px] font-light text-on-surface-variant transition-all duration-300 active:scale-95 hover:border-primary/30 hover:text-primary"
-                >
-                  {text}
-                </button>
-              ))}
-          </div>
-        )}
-
         <div className="space-y-8">
           {msgs.map((msg, i) => (
             <div
