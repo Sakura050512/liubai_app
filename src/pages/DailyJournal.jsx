@@ -5,6 +5,7 @@ import { todayRange, localDateLabel } from '../lib/date'
 import TopBar from '../components/TopBar'
 import ThemeToggleButton from '../components/ThemeToggleButton'
 import BottomNav from '../components/BottomNav'
+import WriteAreaSkeleton from '../components/WriteAreaSkeleton'
 
 const PROMPTS = [
   '今天有什么让你印象深刻的瞬间？',
@@ -28,6 +29,8 @@ export default function DailyJournal() {
   const [history, setHistory] = useState([])
   const [showHistory, setShowHistory] = useState(false)
   const [pageLoading, setPageLoading] = useState(true)
+  const [loadError, setLoadError] = useState('')
+  const [reloadTick, setReloadTick] = useState(0)
 
   // 拉取今天已写的篇目 + 更早的历史
   const loadToday = async user => {
@@ -44,29 +47,39 @@ export default function DailyJournal() {
   }
 
   useEffect(() => {
+    let alive = true
     const load = async () => {
-      const { data: { user } } = await supabase.auth.getUser()
-      if (!user) return
+      setPageLoading(true)
+      setLoadError('')
+      try {
+        const { data: { user } } = await supabase.auth.getUser()
+        if (!user) return
 
-      await loadToday(user)
+        await loadToday(user)
 
-      const { start: dayStart } = todayRange()
+        const { start: dayStart } = todayRange()
 
-      // 历史日记（更早的日子，最近5条）
-      const { data: histData } = await supabase
-        .from('journal_entries')
-        .select('content, created_at, ai_reflection')
-        .eq('user_id', user.id)
-        .lt('created_at', dayStart.toISOString())
-        .order('created_at', { ascending: false })
-        .limit(5)
+        // 历史日记（更早的日子，最近5条）
+        const { data: histData } = await supabase
+          .from('journal_entries')
+          .select('content, created_at, ai_reflection')
+          .eq('user_id', user.id)
+          .lt('created_at', dayStart.toISOString())
+          .order('created_at', { ascending: false })
+          .limit(5)
 
-      if (histData) setHistory(histData)
-      setPageLoading(false)
+        if (alive && histData) setHistory(histData)
+      } catch (err) {
+        console.error('[DailyJournal] 日记加载失败', err)
+        if (alive) setLoadError('日记没能加载出来')
+      } finally {
+        if (alive) setPageLoading(false)
+      }
     }
 
     load()
-  }, [])
+    return () => { alive = false }
+  }, [reloadTick])
 
   // 从今天已有的一篇开始续写/修改
   const startEdit = entry => {
@@ -202,8 +215,20 @@ export default function DailyJournal() {
         {/* 写作区 */}
         <section className="relative mb-6 animate-fade-in" style={{ animationDelay: '150ms' }}>
           {pageLoading ? (
-            <div className="min-h-[200px] flex items-center justify-center">
-              <p className="text-outline text-sm font-light">加载中...</p>
+            <WriteAreaSkeleton />
+          ) : loadError ? (
+            <div
+              className="min-h-[200px] rounded-3xl bg-surface-container-lowest dark:bg-surface-container-low border border-outline-variant/10 flex flex-col items-center justify-center gap-3 px-6 text-center"
+              role="alert"
+            >
+              <span className="material-symbols-outlined text-2xl text-outline">cloud_off</span>
+              <p className="text-on-surface-variant text-sm font-light">{loadError}</p>
+              <button
+                onClick={() => setReloadTick(t => t + 1)}
+                className="px-5 py-2 rounded-full text-sm font-medium bg-primary text-on-primary transition-all duration-300 active:scale-95"
+              >
+                重新加载
+              </button>
             </div>
           ) : (
             <div className="rounded-3xl bg-surface-container-lowest dark:bg-surface-container-low border border-outline-variant/10 p-6 transition-shadow duration-300 focus-within:border-primary/40 focus-within:shadow-glow-soft">

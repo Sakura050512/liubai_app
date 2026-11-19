@@ -12,6 +12,7 @@ import TopBar from '../components/TopBar'
 import BottomNav from '../components/BottomNav'
 import ThemeToggleButton from '../components/ThemeToggleButton'
 import ProfileDrawer from '../components/ProfileDrawer'
+import MoodCardSkeleton from '../components/MoodCardSkeleton'
 
 const moods = [
   { icon: 'sentiment_calm', label: '平静' },
@@ -30,6 +31,9 @@ export default function Home() {
   const [streak, setStreak] = useState(0)
   const [totalMoods, setTotalMoods] = useState(0)
   const [loadingMood, setLoadingMood] = useState(true)
+  // 加载失败：展示可重试的错误态，而不是永远停在"加载中"
+  const [moodLoadError, setMoodLoadError] = useState('')
+  const [moodReloadTick, setMoodReloadTick] = useState(0)
   const [noteInput, setNoteInput] = useState('')
   const [showNote, setShowNote] = useState(false)
   const [pendingMoodIdx, setPendingMoodIdx] = useState(null)
@@ -66,11 +70,19 @@ export default function Home() {
   )
 
   useEffect(() => {
+    let alive = true
     const checkTodayMood = async () => {
-      const { data: { user } } = await supabase.auth.getUser()
-      if (!user) return
+      setLoadingMood(true)
+      setMoodLoadError('')
+      try {
+        const { data: { user } } = await supabase.auth.getUser()
+        if (!user) {
+          // 未登录：没有可展示的数据，但不能卡在加载态
+          if (alive) setLoadingMood(false)
+          return
+        }
 
-      const { start, end } = todayRange()
+        const { start, end } = todayRange()
 
       // 今天的打卡记录（一天一条，取最新）
       const { data } = await supabase
@@ -132,10 +144,17 @@ export default function Home() {
       if (threshold !== undefined && hour >= threshold && !checkedInToday) {
         setShowReminderBanner(true)
       }
+      } catch (err) {
+          console.error('[Home] 今日数据加载失败', err)
+          if (alive) setMoodLoadError('今天的记录没能加载出来')
+      } finally {
+        if (alive) setLoadingMood(false)
+      }
     }
 
     checkTodayMood()
-  }, [])
+    return () => { alive = false }
+  }, [moodReloadTick])
 
   // 第一步：选情绪，弹出备注框
   const handleMoodSelect = (i) => {
@@ -237,7 +256,12 @@ export default function Home() {
 
       <main
         className="mx-auto w-full"
-        style={{ maxWidth: '480px', padding: 'calc(64px + env(safe-area-inset-top)) 16px 0', boxSizing: 'border-box' }}
+        style={{
+          maxWidth: '480px',
+          // 底部留出底栏 + FAB 的高度，避免悬浮按钮压住最后一张卡片的正文
+          padding: 'calc(64px + env(safe-area-inset-top)) 16px calc(72px + env(safe-area-inset-bottom) + 88px)',
+          boxSizing: 'border-box',
+        }}
       >
         <div className="flex flex-col gap-5">
 
@@ -325,8 +349,16 @@ export default function Home() {
             style={{ animationDelay: '60ms', boxShadow: '0 4px 32px rgba(49,51,47,0.04)' }}
           >
             {loadingMood ? (
-              <div className="h-20 flex items-center justify-center">
-                <p className="text-outline text-sm font-light">加载中...</p>
+              <MoodCardSkeleton />
+            ) : moodLoadError ? (
+              <div className="h-20 flex flex-col items-center justify-center gap-2" role="alert">
+                <p className="text-on-surface-variant text-sm font-light">{moodLoadError}</p>
+                <button
+                  onClick={() => setMoodReloadTick(t => t + 1)}
+                  className="text-xs font-medium text-primary px-4 py-1.5 rounded-full bg-primary-container/60 transition-all duration-300 active:scale-95"
+                >
+                  重新加载
+                </button>
               </div>
             ) : !moodDone ? (
               <>

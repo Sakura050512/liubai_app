@@ -2,7 +2,7 @@ import { Link, useLocation } from 'react-router-dom'
 import { useKeyboardOpen } from '../lib/keyboard'
 
 const navItems = [
-  { path: '/', icon: 'home_max', label: '首页' },
+  { path: '/', icon: 'home', label: '首页' },
   { path: '/explore', icon: 'auto_awesome', label: '探索' },
   { path: '/talk', icon: 'chat_bubble_outline', label: '聊聊' },
   { path: '/me', icon: 'person_outline', label: '我的' },

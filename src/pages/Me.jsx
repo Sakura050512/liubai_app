@@ -52,51 +52,65 @@ export default function Me() {
   const [talkHistory, setTalkHistory] = useState([])
   const [removeTalkId, setRemoveTalkId] = useState(null)
   const [loading, setLoading] = useState(true)
+  const [loadError, setLoadError] = useState('')
+  const [reloadTick, setReloadTick] = useState(0)
   const [activeTab, setActiveTab] = useState(0)
 
   useEffect(() => {
+    let alive = true
     const load = async () => {
-      const { data: { user } } = await supabase.auth.getUser()
-      if (!user) return
+      setLoading(true)
+      setLoadError('')
+      try {
+        const { data: { user } } = await supabase.auth.getUser()
+        if (!user) return
 
-      const { data: prof } = await supabase
-        .from('users_profile')
-        .select('nickname')
-        .eq('id', user.id)
-        .single()
+        const { data: prof } = await supabase
+          .from('users_profile')
+          .select('nickname')
+          .eq('id', user.id)
+          .single()
 
-      if (prof) {
-        setProfile(prof)
-      } else {
-        await supabase.from('users_profile')
-          .upsert({ id: user.id, nickname: '旅行者' }, { onConflict: 'id' })
+        if (prof) {
+          setProfile(prof)
+        } else {
+          await supabase.from('users_profile')
+            .upsert({ id: user.id, nickname: '旅行者' }, { onConflict: 'id' })
+        }
+
+        const weekAgo = new Date()
+        weekAgo.setDate(weekAgo.getDate() - 14)
+
+        const [moodRes, journalRes, talkRes, moodHistRes, journalListRes, favRes, talkListRes] = await Promise.all([
+          supabase.from('mood_records').select('id', { count: 'exact', head: true }).eq('user_id', user.id),
+          supabase.from('journal_entries').select('id', { count: 'exact', head: true }).eq('user_id', user.id),
+          supabase.from('talk_records').select('id', { count: 'exact', head: true }).eq('user_id', user.id),
+          supabase.from('mood_records').select('mood, emoji, created_at, note')
+            .eq('user_id', user.id).gte('created_at', weekAgo.toISOString())
+            .order('created_at', { ascending: false }).limit(30),
+          supabase.from('journal_entries').select('content, created_at').eq('user_id', user.id).order('created_at', { ascending: false }).limit(3),
+          supabase.from('dictionary_favorites').select('entry_zh, created_at').eq('user_id', user.id).order('created_at', { ascending: false }),
+          supabase.from('talk_records').select('id, mode, content, created_at')
+            .eq('user_id', user.id).order('created_at', { ascending: false }).limit(20),
+        ])
+
+        if (alive) {
+          setStats({ moods: moodRes.count || 0, journals: journalRes.count || 0, talks: talkRes.count || 0 })
+          setMoodHistory(moodHistRes.data || [])
+          setRecentJournals(journalListRes.data || [])
+          setFavorites(favRes.data || [])
+          setTalkHistory(talkListRes.data || [])
+        }
+      } catch (err) {
+        console.error('[Me] 个人数据加载失败', err)
+        if (alive) setLoadError('你的数据没能加载出来')
+      } finally {
+        if (alive) setLoading(false)
       }
-
-      const weekAgo = new Date()
-      weekAgo.setDate(weekAgo.getDate() - 14)
-
-      const [moodRes, journalRes, talkRes, moodHistRes, journalListRes, favRes, talkListRes] = await Promise.all([
-        supabase.from('mood_records').select('id', { count: 'exact', head: true }).eq('user_id', user.id),
-        supabase.from('journal_entries').select('id', { count: 'exact', head: true }).eq('user_id', user.id),
-        supabase.from('talk_records').select('id', { count: 'exact', head: true }).eq('user_id', user.id),
-        supabase.from('mood_records').select('mood, emoji, created_at, note')
-          .eq('user_id', user.id).gte('created_at', weekAgo.toISOString())
-          .order('created_at', { ascending: false }).limit(30),
-        supabase.from('journal_entries').select('content, created_at').eq('user_id', user.id).order('created_at', { ascending: false }).limit(3),
-        supabase.from('dictionary_favorites').select('entry_zh, created_at').eq('user_id', user.id).order('created_at', { ascending: false }),
-        supabase.from('talk_records').select('id, mode, content, created_at')
-          .eq('user_id', user.id).order('created_at', { ascending: false }).limit(20),
-      ])
-
-      setStats({ moods: moodRes.count || 0, journals: journalRes.count || 0, talks: talkRes.count || 0 })
-      setMoodHistory(moodHistRes.data || [])
-      setRecentJournals(journalListRes.data || [])
-      setFavorites(favRes.data || [])
-      setTalkHistory(talkListRes.data || [])
-      setLoading(false)
     }
     load()
-  }, [])
+    return () => { alive = false }
+  }, [reloadTick])
 
   const saveNickname = async () => {
     setEditing(false)
@@ -479,8 +493,27 @@ export default function Me() {
         {/* 统计卡片 */}
         <section className="mb-6">
           {loading ? (
-            <div className="grid grid-cols-3 gap-3">
-              {[0,1,2].map(i => <div key={i} className="bg-surface-container-lowest p-4 rounded-2xl h-24 animate-pulse" />)}
+            <div className="grid grid-cols-3 gap-3" aria-busy="true" aria-label="正在加载统计">
+              {[0,1,2].map(i => (
+                <div key={i} className="bg-surface-container-lowest p-4 rounded-2xl h-24 border border-outline-variant/10">
+                  <div className="h-2.5 w-8 mx-auto rounded-full bg-surface-container animate-pulse" />
+                  <div className="h-7 w-12 mx-auto rounded-full bg-surface-container animate-pulse mt-4" />
+                </div>
+              ))}
+            </div>
+          ) : loadError ? (
+            <div
+              className="bg-surface-container-lowest rounded-2xl border border-outline-variant/10 px-4 py-6 flex flex-col items-center gap-2 text-center"
+              role="alert"
+            >
+              <span className="material-symbols-outlined text-2xl text-outline">cloud_off</span>
+              <p className="text-on-surface-variant text-sm font-light">{loadError}</p>
+              <button
+                onClick={() => setReloadTick(t => t + 1)}
+                className="mt-1 px-5 py-2 rounded-full text-sm font-medium bg-primary text-on-primary transition-all duration-300 active:scale-95"
+              >
+                重新加载
+              </button>
             </div>
           ) : (
             <div className="grid grid-cols-3 gap-3">

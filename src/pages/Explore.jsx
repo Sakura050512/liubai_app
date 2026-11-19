@@ -137,7 +137,7 @@ export default function Explore() {
                         {card.tag}
                       </span>
                     </div>
-                    <p className="text-on-surface-variant text-xs leading-relaxed line-clamp-1">{card.desc}</p>
+                    <p className="text-on-surface-variant text-[13px] leading-relaxed line-clamp-2">{card.desc}</p>
                   </div>
                   <span className="material-symbols-outlined text-outline-variant text-base flex-shrink-0 group-hover:text-primary group-hover:translate-x-0.5 transition-all duration-300">
                     chevron_right
