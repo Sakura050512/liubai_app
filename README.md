@@ -7,9 +7,20 @@
 一个安静、克制的心理健康陪伴应用 —— 记录心情、写点日记、想说的时候说两句。
 不需要完美，只需要真实。
 
+<p>
+  <img alt="version" src="https://img.shields.io/badge/version-1.2.5-48654a?style=flat-square" />
+  <img alt="platform" src="https://img.shields.io/badge/platform-Android%20%C2%B7%20Web-48654a?style=flat-square" />
+  <img alt="tests" src="https://img.shields.io/badge/tests-58%20passed-48654a?style=flat-square" />
+  <img alt="license" src="https://img.shields.io/badge/license-MIT-48654a?style=flat-square" />
+</p>
+
 <sub>React 18 · Vite 5 · Tailwind CSS 3 · Capacitor 8 (Android) · Supabase · DeepSeek</sub>
 
 </div>
+
+---
+
+![留白 首页](docs/screenshots/home.png)
 
 ---
 
@@ -32,8 +43,8 @@
 | 🧠 | **会话记忆** | 选择"留住"的对话会压成一段第一人称摘要，下次开口时注入上下文 |
 | 📊 | **每周报告** | AI 生成的周报，历史周报可回看 |
 | 📖 | **心理词典** | 42 个心理学词条，每日推荐一条，可搜索、可收藏 |
-| 🌬 | **呼吸练习** | 4-7-8 呼吸法，几分钟的停顿 |
-| 🎧 | **声音空间** | 合成音景，工作或睡前听 |
+| 🌬 | **呼吸练习** | 4-4-6-2 呼吸法，2 / 5 / 10 分钟可选 |
+| 🎧 | **静心之声** | 6 种合成音景（白噪音 / 粉红噪音 / 雨声 / 海浪 / 风声 / 篝火）+ 定时关闭 |
 | 📈 | **情绪趋势** | 近 14 天轨迹（跨度自适应），看得见的变化 |
 | 🛡 | **危机干预** | 识别到自伤/绝望表达时给出求助热线；求助入口任何时刻都可达 |
 | 🔔 | **每日提醒** | 系统级本地通知，时间可选，随时关闭 |
@@ -59,6 +70,30 @@
 
 5. **克制的界面**
    首屏不放引导词、不弹窗、不催促。加载慢时给骨架屏而不是"加载中…"，出错时给可重试的错误态而不是空白。
+
+---
+
+## 📱 界面
+
+<table>
+  <tr>
+    <td align="center"><img src="docs/screenshots/onboarding.png" width="200" /><br /><sub>开场 · 三个问题</sub></td>
+    <td align="center"><img src="docs/screenshots/home.png" width="200" /><br /><sub>首页 · 今天该做什么</sub></td>
+    <td align="center"><img src="docs/screenshots/explore.png" width="200" /><br /><sub>探索 · 按心境归类</sub></td>
+  </tr>
+  <tr>
+    <td align="center"><img src="docs/screenshots/talk.png" width="200" /><br /><sub>聊聊 · 命名感受</sub></td>
+    <td align="center"><img src="docs/screenshots/journal.png" width="200" /><br /><sub>日记 · 引导式提问</sub></td>
+    <td align="center"><img src="docs/screenshots/dictionary.png" width="200" /><br /><sub>心理词典 · 42 词条</sub></td>
+  </tr>
+  <tr>
+    <td align="center"><img src="docs/screenshots/breathing.png" width="200" /><br /><sub>呼吸练习 · 4-4-6-2</sub></td>
+    <td align="center"><img src="docs/screenshots/sound.png" width="200" /><br /><sub>静心之声 · 6 种音景</sub></td>
+    <td align="center"><img src="docs/screenshots/me.png" width="200" /><br /><sub>我的 · 统计与求助入口</sub></td>
+  </tr>
+</table>
+
+> 截图取自本地开发环境（390 × 844 @2x），未登录时部分页面只渲染静态骨架或空态。
 
 ---
 
@@ -217,6 +252,23 @@ npm test
 ```
 
 当前 5 个测试文件、58 个用例，覆盖纯逻辑层：花园成长规则、键盘检测、会话记忆解析、今日任务计算、心情备注。UI 层靠真实设备验证。
+
+---
+
+## 📅 更新日志
+
+版本演进、修复与删除记录见 **[CHANGELOG.md](./CHANGELOG.md)**。近期几个版本：
+
+| 版本 | 日期 | 要点 |
+|---|---|---|
+| **1.2.5** | 2026-11-19 | 移除首页次日回顾卡片；Service Worker 改为网络优先 |
+| **1.2.4** | 2026-11-19 | 移除聊聊页首屏推荐词 |
+| **1.2.3** | 2026-11-19 | 修复首页图标、加载态兜底、FAB 遮挡；新增骨架屏 |
+| **1.2.2** | 2026-11-18 | 修复键盘弹起时底部导航被顶起 |
+| **1.2.1** | 2026-11-18 | 侧滑/返回键回退上一级；支持中文路径构建 |
+| **1.2.0** | 2026-11-18 | 信息架构重构：新增探索页、首页聚焦「今天」、求助入口常驻 |
+| **1.1.5** | 2026-08-25 | AI 会话记忆；趋势图改用图标字体 |
+| **1.1.0** | 2026-08-23 | 情绪花园、静心之声、数据导出、节气提示 |
 
 ---
 
